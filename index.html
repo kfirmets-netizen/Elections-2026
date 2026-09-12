@@ -20,6 +20,7 @@ button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{
 .roomHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.roomHead h1{font-size:30px;margin:2px 0}.roomHead small,small{font-size:13px;color:#64748b;font-weight:700}.share{padding:11px 16px}
 .status{display:flex;gap:13px;align-items:center;border-radius:20px;padding:16px;margin-bottom:14px}.sealed{background:var(--ink);color:#fff}.waiting{background:#fff7db;color:#755600}.open{background:#e9f9ef;color:var(--good)}
 .status .icon{width:42px;height:42px;border-radius:13px;background:#ffffff18;display:grid;place-items:center;font-size:24px}.status div{display:grid;gap:4px}.status span{font-size:13px;opacity:.75}
+.participants{margin-bottom:14px;padding:16px}.participants summary{cursor:pointer;font-weight:900}.participantNames{display:flex;flex-wrap:wrap;gap:8px;margin-top:13px}.participantNames span{background:#eef3ff;color:#24499c;padding:7px 11px;border-radius:999px;font-size:13px;font-weight:700}
 .prediction{padding:14px}.prediction>.nameField{margin:8px 5px 16px}.parties{display:grid;gap:7px}.party{grid-template-columns:30px 1fr auto;display:grid;align-items:center;gap:10px;padding:9px;border:1px solid #e7ebf1;border-radius:15px}
 .partyName{display:grid;gap:2px}.partyName small{font-size:11px;color:#64748b}.number{width:29px;height:29px;background:#edf2ff;color:var(--blue);display:grid;place-items:center;border-radius:9px;font-size:12px}
 .step{display:grid;grid-template-columns:35px 42px 35px;direction:ltr;border:1px solid var(--line);border-radius:11px;overflow:hidden}.step button{background:#f5f7fa;font-size:20px}.step input{border:0;border-radius:0;text-align:center;padding:8px 0;width:42px;font-weight:900;background:#fff}
@@ -127,15 +128,20 @@ const n=total();
 const box=document.getElementById("totalBox");
 const prediction=document.getElementById("predictionSubmit");
 const results=document.getElementById("resultsSave");
+
 if(box){
 box.classList.toggle("good",n===120);
 box.querySelector("strong").textContent=`${n} / 120`;
 }
+
 if(prediction){
 prediction.disabled=state.busy||n!==120;
 prediction.textContent=n===120?"נעילת התחזית":`נותרו ${120-n} מנדטים`;
 }
-if(results)results.disabled=state.busy||n!==120;
+
+if(results){
+results.disabled=state.busy||n!==120;
+}
 }
 
 function render(){
@@ -179,16 +185,43 @@ bind();
 
 function renderRoom(){
 const r=state.room;
-if(!r){state.screen="home";return render()}
+if(!r){
+state.screen="home";
+return render();
+}
 
 const ranked=r.results&&r.predictions
-?[...r.predictions].map(x=>({...x,error:PARTIES.reduce((s,p)=>s+Math.pow((x.seats[p]||0)-(r.results[p]||0),2),0)})).sort((a,b)=>a.error-b.error)
+?[...r.predictions]
+.map(x=>({
+...x,
+error:PARTIES.reduce(
+(s,p)=>s+Math.pow((x.seats[p]||0)-(r.results[p]||0),2),
+0
+)
+}))
+.sort((a,b)=>a.error-b.error)
 :[];
+
+const participantNames=(
+r.participants||
+r.predictions?.map(x=>x.name)||
+[]
+).slice().sort((a,b)=>a.localeCompare(b,"he"));
+
+const participantPanel=`<details class="panel participants">
+<summary>מי כבר השתתף? (${r.count})</summary>
+<div class="participantNames">
+${participantNames.length
+?participantNames.map(name=>`<span>${esc(name)}</span>`).join("")
+:'<small>עדיין לא נשלחו תחזיות</small>'}
+</div>
+</details>`;
 
 let body="";
 
 if(!r.revealed&&!r.closed){
 const n=total();
+
 body=`<form id="predictionForm" class="panel prediction">
 <label class="nameField">השם שלך
 <input id="playerName" value="${esc(state.name)}" placeholder="איך תופיע בדירוג?" maxlength="40" required>
@@ -211,16 +244,31 @@ body=`<section class="panel">
 <small>הציון הוא סכום ריבועי הסטיות — הנמוך ביותר מנצח</small>
 <h2>לוח המנצחים</h2>
 <div class="ranking">
-${ranked.length?ranked.map((x,i)=>`<div class="rank"><b class="place">${i+1}</b><strong>${esc(x.name)}</strong><span>${x.error} נק׳</span></div>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+${ranked.length
+?ranked.map((x,i)=>`<div class="rank"><b class="place">${i+1}</b><strong>${esc(x.name)}</strong><span>${x.error} נק׳</span></div>`).join("")
+:'<p class="empty">עדיין אין תחזיות בחדר</p>'}
 </div>
-<details><summary>השוואה מלאה</summary>
-<div class="matrix">${PARTIES.map(p=>`<div><strong>${p}</strong><span>אמת: ${r.results[p]||0}</span>${ranked.map(x=>`<em>${esc(x.name)}: ${x.seats[p]||0}</em>`).join("")}</div>`).join("")}</div>
-</details></section>`;
+<details>
+<summary>השוואה מלאה</summary>
+<div class="matrix">
+${PARTIES.map(p=>`<div>
+<strong>${p}</strong>
+<span>אמת: ${r.results[p]||0}</span>
+${ranked.map(x=>`<em>${esc(x.name)}: ${x.seats[p]||0}</em>`).join("")}
+</div>`).join("")}
+</div>
+</details>
+</section>`;
 }else{
 body=`<section class="panel">
 <h2>כל התחזיות על השולחן</h2>
 <div class="cards">
-${r.predictions?.length?r.predictions.map(x=>`<details><summary>${esc(x.name)}</summary>${PARTIES.map(p=>`<p><span>${p}</span><b>${x.seats[p]||0}</b></p>`).join("")}</details>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+${r.predictions?.length
+?r.predictions.map(x=>`<details>
+<summary>${esc(x.name)}</summary>
+${PARTIES.map(p=>`<p><span>${p}</span><b>${x.seats[p]||0}</b></p>`).join("")}
+</details>`).join("")
+:'<p class="empty">עדיין אין תחזיות בחדר</p>'}
 </div>
 ${state.admin?'<button class="primary" data-action="results">הזנת תוצאות האמת</button>':""}
 </section>`;
@@ -229,6 +277,7 @@ ${state.admin?'<button class="primary" data-action="results">הזנת תוצאו
 const statusClass=r.revealed?"open":r.closed?"waiting":"sealed";
 const statusIcon=r.revealed?"✓":r.closed?"⏳":"⌁";
 const statusTitle=r.revealed?"התחזיות נחשפו":r.closed?"ההגשה נסגרה":"הכספת נעולה";
+
 const statusText=r.revealed
 ?`${r.count} תחזיות במשחק`
 :r.closed
@@ -241,42 +290,72 @@ app.innerHTML=`<section class="shell">
 <div><small>חדר ${esc(r.code)}</small><h1>${esc(r.title)}</h1></div>
 <button class="share" data-action="share">שיתוף</button>
 </header>
+
 <section class="status ${statusClass}">
 <span class="icon">${statusIcon}</span>
 <div><strong>${statusTitle}</strong><span>${statusText}</span></div>
 </section>
+
+${participantPanel}
 ${body}
+
 ${state.message?`<div class="toast">${esc(state.message)}</div>`:""}
-${state.resultMode?`<div class="modal"><section class="panel">
+
+${state.resultMode?`<div class="modal">
+<section class="panel">
 <button class="close" data-action="close">×</button>
 <h2>תוצאות האמת</h2>
 ${!r.revealed?'<div class="notice">התוצאות יישמרו, אך התחזיות והדירוג יישארו חסויים עד למועד שנקבע.</div>':""}
 ${partyList(true)}
 ${totalBox()}
-<button id="resultsSave" class="primary" data-action="saveResults" ${state.busy||total()!==120?"disabled":""}>שמירת התוצאות</button>
-</section></div>`:""}
+<button id="resultsSave" class="primary" data-action="saveResults" ${state.busy||total()!==120?"disabled":""}>
+שמירת התוצאות
+</button>
+</section>
+</div>`:""}
 </section>`;
 }
 
 function bind(){
-app.querySelectorAll("[data-action]").forEach(el=>el.addEventListener("click",handleAction));
+app.querySelectorAll("[data-action]").forEach(
+el=>el.addEventListener("click",handleAction)
+);
 
-app.querySelectorAll(".seatInput").forEach(el=>el.addEventListener("input",e=>{
-state.seats[e.target.dataset.party]=Math.max(0,Math.min(120,Number(e.target.value)||0));
+app.querySelectorAll(".seatInput").forEach(
+el=>el.addEventListener("input",e=>{
+state.seats[e.target.dataset.party]=Math.max(
+0,
+Math.min(120,Number(e.target.value)||0)
+);
 refreshTotals();
-}));
+})
+);
 
 const jc=document.getElementById("joinCode");
-if(jc)jc.addEventListener("input",e=>state.code=e.target.value.toUpperCase());
+if(jc){
+jc.addEventListener(
+"input",
+e=>state.code=e.target.value.toUpperCase()
+);
+}
 
 const nf=document.getElementById("playerName");
-if(nf)nf.addEventListener("input",e=>state.name=e.target.value);
+if(nf){
+nf.addEventListener(
+"input",
+e=>state.name=e.target.value
+);
+}
 
 const cf=document.getElementById("createForm");
-if(cf)cf.addEventListener("submit",createRoom);
+if(cf){
+cf.addEventListener("submit",createRoom);
+}
 
 const pf=document.getElementById("predictionForm");
-if(pf)pf.addEventListener("submit",savePrediction);
+if(pf){
+pf.addEventListener("submit",savePrediction);
+}
 
 const close=document.getElementById("closeAt");
 const reveal=document.getElementById("revealAt");
@@ -287,7 +366,9 @@ const x=new Date(d);
 x.setMinutes(x.getMinutes()-x.getTimezoneOffset());
 return x.toISOString().slice(0,16);
 };
+
 const now=Date.now();
+
 close.min=localValue(now+60000);
 close.value=localValue(now+86400000);
 reveal.min=close.value;
@@ -295,6 +376,7 @@ reveal.value=localValue(now+90000000);
 
 close.addEventListener("change",()=>{
 reveal.min=close.value;
+
 if(reveal.value<=close.value){
 const d=new Date(close.value);
 d.setHours(d.getHours()+1);
@@ -309,21 +391,40 @@ const a=e.currentTarget.dataset.action;
 const p=e.currentTarget.dataset.party;
 
 if(a==="goCreate"){
-state.screen="create";state.message="";render();
+state.screen="create";
+state.message="";
+render();
 }else if(a==="home"){
-state.screen="home";state.room=null;state.resultMode=false;state.message="";
-history.replaceState({},"",location.pathname);render();
+state.screen="home";
+state.room=null;
+state.resultMode=false;
+state.message="";
+history.replaceState({},"",location.pathname);
+render();
 }else if(a==="join"){
 loadRoom(state.code);
 }else if(a==="plus"||a==="minus"){
-state.seats[p]=Math.max(0,state.seats[p]+(a==="plus"?1:-1));
-const input=e.currentTarget.closest(".party")?.querySelector(".seatInput");
-if(input)input.value=state.seats[p];
+state.seats[p]=Math.max(
+0,
+state.seats[p]+(a==="plus"?1:-1)
+);
+
+const input=e.currentTarget
+.closest(".party")
+?.querySelector(".seatInput");
+
+if(input){
+input.value=state.seats[p];
+}
+
 refreshTotals();
 }else if(a==="results"){
-state.seats=blank();state.resultMode=true;render();
+state.seats=blank();
+state.resultMode=true;
+render();
 }else if(a==="close"){
-state.resultMode=false;render();
+state.resultMode=false;
+render();
 }else if(a==="saveResults"){
 saveResults();
 }else if(a==="share"){
@@ -334,23 +435,34 @@ shareRoom();
 async function api(path,options){
 const res=await fetch(API_BASE+path,options);
 const data=await res.json().catch(()=>({}));
-if(!res.ok)throw Error(data.error||"אירעה שגיאה");
+
+if(!res.ok){
+throw Error(data.error||"אירעה שגיאה");
+}
+
 return data;
 }
 
 async function createRoom(e){
 e.preventDefault();
+
 const f=new FormData(e.currentTarget);
 const title=f.get("title");
 const closeAt=Date.parse(String(f.get("closeAt")));
 const revealAt=Date.parse(String(f.get("revealAt")));
 
-if(!Number.isFinite(closeAt)||!Number.isFinite(revealAt)||revealAt<=closeAt){
+if(
+!Number.isFinite(closeAt)||
+!Number.isFinite(revealAt)||
+revealAt<=closeAt
+){
 state.message="מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות";
 return render();
 }
 
-state.busy=true;state.message="";render();
+state.busy=true;
+state.message="";
+render();
 
 try{
 const d=await api("/api/rooms",{
@@ -365,8 +477,18 @@ revealAt:new Date(revealAt).toISOString()
 
 state.code=d.code;
 state.admin=d.adminToken;
-localStorage.setItem(`ad120-admin-${d.code}`,d.adminToken);
-history.replaceState({},"",`?room=${d.code}`);
+
+localStorage.setItem(
+`ad120-admin-${d.code}`,
+d.adminToken
+);
+
+history.replaceState(
+{},
+"",
+`?room=${d.code}`
+);
+
 await loadRoom(d.code,d.adminToken);
 }catch(err){
 state.message=err.message;
@@ -388,8 +510,14 @@ render();
 
 try{
 const c=code.trim().toUpperCase();
-const savedAdmin=localStorage.getItem(`ad120-admin-${c}`)||"";
-const d=await api(`/api/rooms/${encodeURIComponent(c)}`,{cache:"no-store"});
+
+const savedAdmin=
+localStorage.getItem(`ad120-admin-${c}`)||"";
+
+const d=await api(
+`/api/rooms/${encodeURIComponent(c)}`,
+{cache:"no-store"}
+);
 
 state.code=c;
 state.admin=admin||savedAdmin;
@@ -397,8 +525,18 @@ state.room=d;
 state.screen="room";
 state.message="";
 
-if(state.admin)localStorage.setItem(`ad120-admin-${c}`,state.admin);
-history.replaceState({},"",`?room=${c}`);
+if(state.admin){
+localStorage.setItem(
+`ad120-admin-${c}`,
+state.admin
+);
+}
+
+history.replaceState(
+{},
+"",
+`?room=${c}`
+);
 }catch(err){
 state.message=err.message;
 state.screen="home";
@@ -410,7 +548,10 @@ render();
 
 async function savePrediction(e){
 e.preventDefault();
-if(total()!==120||!state.name.trim())return;
+
+if(total()!==120||!state.name.trim()){
+return;
+}
 
 state.busy=true;
 render();
@@ -419,7 +560,9 @@ try{
 const key=`ad120-${state.code}`;
 const editToken=localStorage.getItem(key)||undefined;
 
-const d=await api(`/api/rooms/${state.code}/predictions`,{
+const d=await api(
+`/api/rooms/${state.code}/predictions`,
+{
 method:"POST",
 headers:{"content-type":"application/json"},
 body:JSON.stringify({
@@ -427,10 +570,14 @@ name:state.name,
 seats:state.seats,
 token:editToken
 })
-});
+}
+);
 
 localStorage.setItem(key,d.token);
-state.message="התחזית נשמרה בכספת. אפשר לעדכן עד מועד סגירת ההגשות.";
+
+state.message=
+"התחזית נשמרה בכספת. אפשר לעדכן עד מועד סגירת ההגשות.";
+
 await loadRoom(state.code,state.admin);
 }catch(err){
 state.message=err.message;
@@ -440,19 +587,29 @@ render();
 }
 
 async function saveResults(){
-if(total()!==120)return;
+if(total()!==120){
+return;
+}
+
 state.busy=true;
 render();
 
 try{
-await api(`/api/rooms/${state.code}/results`,{
+await api(
+`/api/rooms/${state.code}/results`,
+{
 method:"POST",
 headers:{"content-type":"application/json"},
-body:JSON.stringify({adminToken:state.admin,seats:state.seats})
-});
+body:JSON.stringify({
+adminToken:state.admin,
+seats:state.seats
+})
+}
+);
 
 state.resultMode=false;
 state.message="תוצאות האמת נשמרו";
+
 await loadRoom(state.code,state.admin);
 }catch(err){
 state.message=err.message;
@@ -462,10 +619,15 @@ render();
 }
 
 async function shareRoom(){
-const url=`${location.origin}${location.pathname}?room=${state.room.code}`;
+const url=
+`${location.origin}${location.pathname}?room=${state.room.code}`;
+
 try{
 if(navigator.share){
-await navigator.share({title:state.room.title,url});
+await navigator.share({
+title:state.room.title,
+url
+});
 }else{
 await navigator.clipboard.writeText(url);
 state.message="הקישור הועתק";
@@ -480,18 +642,37 @@ const a=qs.get("admin")||"";
 
 if(c){
 state.code=c.toUpperCase();
-if(a)localStorage.setItem(`ad120-admin-${state.code}`,a);
+
+if(a){
+localStorage.setItem(
+`ad120-admin-${state.code}`,
+a
+);
+}
+
 loadRoom(state.code,a);
 }else{
 render();
 }
 
 setInterval(()=>{
-if(!state.room||state.resultMode)return;
+if(!state.room||state.resultMode){
+return;
+}
+
 const now=Date.now();
-const shouldClose=!state.room.closed&&now>=Date.parse(state.room.closeAt);
-const shouldReveal=!state.room.revealed&&now>=Date.parse(state.room.revealAt);
-if(shouldClose||shouldReveal)loadRoom(state.code,state.admin);
+
+const shouldClose=
+!state.room.closed&&
+now>=Date.parse(state.room.closeAt);
+
+const shouldReveal=
+!state.room.revealed&&
+now>=Date.parse(state.room.revealAt);
+
+if(shouldClose||shouldReveal){
+loadRoom(state.code,state.admin);
+}
 },5000);
 
 })();
