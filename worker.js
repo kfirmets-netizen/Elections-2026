@@ -1,238 +1,500 @@
-const PARTIES = [
-  "ישר!", "הליכוד", "ביחד", "הדמוקרטים", "ישראל ביתנו",
-  "יהדות התורה", "ש״ס", "המשותפת", "עוצמה יהודית",
-  "הציונות הדתית", "עמך ישראל", "רע״ם"
-];
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1249d8">
+<title>עד 120</title>
+<meta name="description" content="משחק תחזיות לבחירות בישראל — התחזיות נשארות חסויות עד מועד החשיפה">
+<style>
+:root{--ink:#101828;--muted:#5d6b7e;--blue:#1249d8;--line:#dfe5ee;--bg:#f5f7fb;--good:#116033;--bad:#b42318;--shadow:0 16px 50px #26376212}
+*{box-sizing:border-box}html{background:var(--bg);direction:rtl}body{margin:0;color:var(--ink);font:16px/1.45 Arial,sans-serif;background:radial-gradient(circle at 10% 0,#dce7ff 0,transparent 34%),var(--bg);min-height:100vh}
+button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{min-height:100dvh;max-width:600px;margin:auto;padding:24px 18px 80px}.home{display:flex;flex-direction:column;justify-content:center}
+.brand{margin:0 auto 28px;width:min(100%,360px)}.logoLockup{display:flex;align-items:center;justify-content:center;gap:18px}.logoIcon{width:112px;height:112px}.wordmark{font-size:58px;font-weight:900;white-space:nowrap}
+.hero,.panel{background:#fff;border:1px solid #e6eaf1;border-radius:26px;padding:24px;box-shadow:var(--shadow)}.hero h1{font-size:32px;line-height:1.12;margin:0 0 12px}.hero p{color:var(--muted);margin:0 0 25px}
+.primary{width:100%;padding:16px;border-radius:15px;background:var(--blue);color:#fff}.primary:hover{background:#0b36a7}button:disabled{opacity:.42;cursor:not-allowed}
+.join{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-top:12px}.join button,.share{border:1px solid var(--line);border-radius:13px;background:#fff}.join input,input{border:1px solid var(--line);border-radius:12px;padding:13px;background:#fbfcfe;min-width:0}
+.features{display:flex;justify-content:space-between;gap:8px;margin-top:22px;color:var(--muted);font-size:12px;font-weight:700}.back{background:none;margin-bottom:18px;color:var(--muted);padding:7px 0}
+.panel h1{font-size:30px;margin:4px 0 24px}.panel h2{margin:5px 0 16px}.stack{display:grid;gap:17px}label{display:grid;gap:8px;font-size:14px;font-weight:700}
+.notice{background:#eef3ff;color:#24499c;padding:14px;border-radius:13px;font-size:13px}.error{color:var(--bad);font-weight:700}
+.roomHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.roomHead h1{font-size:30px;margin:2px 0}.roomHead small,small{font-size:13px;color:#64748b;font-weight:700}.share{padding:11px 16px}
+.status{display:flex;gap:13px;align-items:center;border-radius:20px;padding:16px;margin-bottom:14px}.sealed{background:var(--ink);color:#fff}.waiting{background:#fff7db;color:#755600}.open{background:#e9f9ef;color:var(--good)}
+.status .icon{width:42px;height:42px;border-radius:13px;background:#ffffff18;display:grid;place-items:center;font-size:24px}.status div{display:grid;gap:4px}.status span{font-size:13px;opacity:.75}
+.prediction{padding:14px}.prediction>.nameField{margin:8px 5px 16px}.parties{display:grid;gap:7px}.party{grid-template-columns:30px 1fr auto;display:grid;align-items:center;gap:10px;padding:9px;border:1px solid #e7ebf1;border-radius:15px}
+.partyName{display:grid;gap:2px}.partyName small{font-size:11px;color:#64748b}.number{width:29px;height:29px;background:#edf2ff;color:var(--blue);display:grid;place-items:center;border-radius:9px;font-size:12px}
+.step{display:grid;grid-template-columns:35px 42px 35px;direction:ltr;border:1px solid var(--line);border-radius:11px;overflow:hidden}.step button{background:#f5f7fa;font-size:20px}.step input{border:0;border-radius:0;text-align:center;padding:8px 0;width:42px;font-weight:900;background:#fff}
+.total{position:sticky;bottom:79px;display:flex;justify-content:space-between;margin:14px 0 9px;padding:13px 16px;background:#fff3f0;color:var(--bad);border-radius:13px;border:1px solid #ffd4cc;z-index:2}.total.good{background:#e9f9ef;color:var(--good);border-color:#b9e7c8}
+.sticky{position:sticky;bottom:14px;z-index:2}.adminResult{width:100%;margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#536071}
+.toast{position:fixed;z-index:30;bottom:18px;left:18px;right:18px;max-width:564px;margin:auto;background:var(--ink);color:#fff;padding:14px;border-radius:14px;text-align:center}
+.cards,.ranking{display:grid;gap:10px;margin:18px 0}.cards details,.rank{border:1px solid var(--line);border-radius:15px;padding:14px}.cards summary{font-weight:900;cursor:pointer}.cards p{display:flex;justify-content:space-between;margin:10px 0;color:var(--muted)}
+.rank{display:grid;grid-template-columns:38px 1fr auto;align-items:center}.rank .place{width:32px;height:32px;border-radius:50%;background:#fff1be;color:#855d00;display:grid;place-items:center}.rank span{font-size:13px;color:#64748b}
+.matrix{display:grid;gap:8px;margin-top:14px}.matrix>div{display:grid;grid-template-columns:1.3fr .8fr;gap:4px;border-bottom:1px solid var(--line);padding:10px 0}.matrix em{color:#64748b;font-size:13px;font-style:normal}
+.modal{position:fixed;inset:0;background:#10182899;z-index:20;display:grid;place-items:end center;padding:18px}.modal>.panel{width:min(100%,564px);max-height:91dvh;overflow:auto}.close{float:left;background:#eef1f6;border-radius:50%;width:36px;height:36px;font-size:23px}
+.compact .party{grid-template-columns:1fr 72px}.compact input{text-align:center;padding:8px}.loading{text-align:center;padding-top:35vh;color:#64748b}.empty{color:var(--muted);text-align:center;padding:20px}
+@media(max-width:380px){.shell{padding-inline:12px}.hero h1{font-size:27px}.logoIcon{width:86px;height:86px}.wordmark{font-size:46px}.party{grid-template-columns:26px 1fr auto}.step{grid-template-columns:31px 38px 31px}.features{flex-direction:column}.roomHead h1{font-size:25px}}
+</style>
+</head>
+<body>
+<main id="app"></main>
+<script>
+(()=>{
+"use strict";
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+const PARTY_LISTS=[
+{name:"אורות השחר מפלגה של כולם",letters:"בקר"},
+{name:"אני ואתה מפלגת העם הישראלית",letters:"פה / כו / יד / ה"},
+{name:"בטח",letters:"ז"},
+{name:"ביחד בראשות נפתלי בנט",letters:"ב / רק"},
+{name:"ביחד נצליח - רשימה משותפת ערבית יהודית",letters:"בד / בי / בנ / רץ"},
+{name:"ביטחון אישי",letters:"נץ"},
+{name:"ברית עולם לגאולת ישראל",letters:"זץ"},
+{name:"גח״ת-גוש התנ״כי",letters:"יק"},
+{name:"גן עדן בראשות ישוע ישראל בן דוד",letters:"יה / ה"},
+{name:"הדמוקרטים בראשות יאיר גולן",letters:"אמת"},
+{name:"הקהל - מפלגה כלל חרדית שנציגיה נבחרים על ידי הציבור בראשות הרב שלמה אלבוים",letters:"רך"},
+{name:"המילואימניקים והכלכלית בראשות יועז הנדל וירון זליכה",letters:"די / צ / י"},
+{name:"הציבור החרדי בראשות מוטי לורנר",letters:"זר"},
+{name:"הציונות הדתית בראשות בצלאל סמוטריץ׳ יהדות בראשות משה פייגלין",letters:"ט"},
+{name:"הרשימה המשותפת",letters:"ודם"},
+{name:"השותפות לכולם",letters:"ד / דק"},
+{name:"התאחדות הספרדים שומרי תורה תנועתו של מרן הרב עובדיה יוסף זצ״ל",letters:"שם"},
+{name:"התיקון לשיטת הבחירות והממשל",letters:"יד"},
+{name:"הפיראטים – צפים לטוב",letters:"צפ / ף / ר / רז"},
+{name:"יהדות התורה והשבת אגודת ישראל - דגל התורה",letters:"ג"},
+{name:"ישראל ביתנו בראשות אביגדור ליברמן",letters:"ל"},
+{name:"ישראל תחילה - בראשות שרן השכל",letters:"י / ר"},
+{name:"ישר! עם איזנקוט לראשות הממשלה מאחדים את ישראל",letters:"דר"},
+{name:"כחול לבן",letters:"כן"},
+{name:"הליכוד עם בנימין נתניהו לראשות הממשלה",letters:"מחל"},
+{name:"משפט צדק",letters:"קץ"},
+{name:"מפלגת תקומה",letters:"ק"},
+{name:"נעם לישראל",letters:"ני"},
+{name:"סדר חדש",letters:"קר"},
+{name:"עוצמה יהודית",letters:"ב"},
+{name:"עמך ישראל",letters:"ר"},
+{name:"צבע שחור - מגן עולם התורה",letters:"נר"},
+{name:"צומת בית ישראל",letters:"בי"},
+{name:"קול הנשים",letters:"קה / צח / נא"},
+{name:"רע״ם - הרשימה הערבית המאוחדת",letters:"עם"},
+{name:"שמע בראשות נפתלי גולדמן",letters:"נף"},
+{name:"שרשר לאהבה ואחדות העם",letters:"צדק"},
+{name:"תנועת אחי תנועתו של הרב יורם אברג׳ל זצ״ל",letters:"צ"}
+].sort((a,b)=>a.name.localeCompare(b.name,"he"));
 
-function json(data, status = 200) {
-  return Response.json(data, {
-    status,
-    headers: { "cache-control": "no-store" }
-  });
+const PARTIES=PARTY_LISTS.map(x=>x.name);
+const LETTERS=Object.fromEntries(PARTY_LISTS.map(x=>[x.name,x.letters]));
+const API_BASE=(window.ELECTIONS_API_BASE||"").replace(/\/$/,"");
+const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false};
+const app=document.getElementById("app");
+
+function blank(){return Object.fromEntries(PARTIES.map(p=>[p,0]))}
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function total(){return Object.values(state.seats).reduce((a,b)=>a+(Number(b)||0),0)}
+
+function logo(){
+return `<div class="logoLockup" role="img" aria-label="עד 120">
+<span class="wordmark">עד 120</span>
+<svg class="logoIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" aria-hidden="true">
+<rect width="140" height="140" rx="36" fill="#1249d8"/>
+<path d="M36 71h68v43H36z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+<path d="M50 53h42l12 18H36z" fill="#fff"/>
+<text x="70" y="102" text-anchor="middle" font-family="Arial,sans-serif" font-size="29" font-weight="900" fill="#1249d8">120</text>
+</svg></div>`;
 }
 
-function randomToken(bytes = 24) {
-  const data = crypto.getRandomValues(new Uint8Array(bytes));
-  return Array.from(data, byte => byte.toString(16).padStart(2, "0")).join("");
+function partyList(compact=false){
+return `<div class="parties ${compact?"compact":""}">${PARTIES.map((p,i)=>`
+<label class="party">
+${compact?"":`<span class="number">${i+1}</span>`}
+<span class="partyName"><strong>${p}</strong><small>אותיות: ${LETTERS[p]}</small></span>
+${compact
+?`<input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}">`
+:`<span class="step">
+<button type="button" data-action="minus" data-party="${p}">−</button>
+<input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}">
+<button type="button" data-action="plus" data-party="${p}">+</button>
+</span>`}
+</label>`).join("")}</div>`;
 }
 
-function toBase64(bytes) {
-  let value = "";
-  for (const byte of bytes) value += String.fromCharCode(byte);
-  return btoa(value);
+function totalBox(){
+const n=total();
+return `<div id="totalBox" class="total ${n===120?"good":""}"><span>סה״כ</span><strong>${n} / 120</strong></div>`;
 }
 
-function fromBase64(value) {
-  return Uint8Array.from(atob(value), character => character.charCodeAt(0));
+function refreshTotals(){
+const n=total();
+const box=document.getElementById("totalBox");
+const prediction=document.getElementById("predictionSubmit");
+const results=document.getElementById("resultsSave");
+if(box){
+box.classList.toggle("good",n===120);
+box.querySelector("strong").textContent=`${n} / 120`;
+}
+if(prediction){
+prediction.disabled=state.busy||n!==120;
+prediction.textContent=n===120?"נעילת התחזית":`נותרו ${120-n} מנדטים`;
+}
+if(results)results.disabled=state.busy||n!==120;
 }
 
-async function hash(value) {
-  const digest = await crypto.subtle.digest("SHA-256", encoder.encode(value));
-  return toBase64(new Uint8Array(digest));
+function render(){
+if(state.screen==="home"){
+app.innerHTML=`<section class="shell home">
+<div class="brand">${logo()}</div>
+<section class="hero">
+<h1>מי באמת יודע לקרוא את המפה?</h1>
+<p>כל אחד ממלא תחזית, וכל התחזיות נשארות חסויות עד לרגע החשיפה.</p>
+<button class="primary" data-action="goCreate">פתיחת משחק חדש</button>
+<div class="join">
+<input id="joinCode" value="${esc(state.code)}" placeholder="קוד חדר" maxlength="6">
+<button data-action="join">כניסה</button>
+</div>
+${state.message?`<p class="error">${esc(state.message)}</p>`:""}
+</section>
+<div class="features"><span>🔒 חסוי מהמארגן</span><span>✓ בדיוק 120</span><span>🏆 דירוג אוטומטי</span></div>
+</section>`;
+}else if(state.screen==="create"){
+app.innerHTML=`<section class="shell">
+<button class="back" data-action="home">→ חזרה</button>
+<section class="panel">
+<small>יצירת חדר</small>
+<h1>פותחים את הקלפי</h1>
+<form id="createForm" class="stack">
+<label>שם המשחק<input name="title" value="תחזית הבחירות שלנו" maxlength="80" required></label>
+<label>מועד אחרון להגשת תחזיות<input id="closeAt" name="closeAt" type="datetime-local" required></label>
+<label>מועד חשיפת התחזיות והדירוג<input id="revealAt" name="revealAt" type="datetime-local" required></label>
+<div class="notice">לאחר מועד ההגשה לא ניתן יהיה לשמור או לשנות תחזית. עד מועד החשיפה אף אחד — כולל המארגן — לא יוכל לצפות בתחזיות.</div>
+<button class="primary" ${state.busy?"disabled":""}>${state.busy?"פותח חדר…":"יצירת חדר פרטי"}</button>
+</form>
+${state.message?`<p class="error">${esc(state.message)}</p>`:""}
+</section></section>`;
+}else if(state.screen==="loading"){
+app.innerHTML='<section class="shell loading">טוען את החדר…</section>';
+}else{
+renderRoom();
+}
+bind();
 }
 
-async function encryptionKey(env) {
-  if (!env.SEAL_KEY) throw new Error("SEAL_KEY is missing");
-  const raw = fromBase64(env.SEAL_KEY);
-  if (raw.byteLength !== 32) throw new Error("SEAL_KEY must contain 32 bytes");
-  return crypto.subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+function renderRoom(){
+const r=state.room;
+if(!r){state.screen="home";return render()}
+
+const ranked=r.results&&r.predictions
+?[...r.predictions].map(x=>({...x,error:PARTIES.reduce((s,p)=>s+Math.pow((x.seats[p]||0)-(r.results[p]||0),2),0)})).sort((a,b)=>a.error-b.error)
+:[];
+
+let body="";
+
+if(!r.revealed&&!r.closed){
+const n=total();
+body=`<form id="predictionForm" class="panel prediction">
+<label class="nameField">השם שלך
+<input id="playerName" value="${esc(state.name)}" placeholder="איך תופיע בדירוג?" maxlength="40" required>
+</label>
+${partyList()}
+${totalBox()}
+<button id="predictionSubmit" class="primary sticky" ${state.busy||n!==120?"disabled":""}>
+${n===120?"נעילת התחזית":`נותרו ${120-n} מנדטים`}
+</button>
+</form>
+${state.admin?'<button class="adminResult" data-action="results">הזנת תוצאות האמת מראש</button>':""}`;
+}else if(!r.revealed){
+body=`<section class="panel">
+<h2>הגשת התחזיות הסתיימה</h2>
+<p class="empty">התחזיות יישארו חסויות עד ${new Date(r.revealAt).toLocaleString("he-IL")}.</p>
+${state.admin?'<button class="primary" data-action="results">הזנת תוצאות האמת</button>':""}
+</section>`;
+}else if(r.results){
+body=`<section class="panel">
+<small>הציון הוא סכום ריבועי הסטיות — הנמוך ביותר מנצח</small>
+<h2>לוח המנצחים</h2>
+<div class="ranking">
+${ranked.length?ranked.map((x,i)=>`<div class="rank"><b class="place">${i+1}</b><strong>${esc(x.name)}</strong><span>${x.error} נק׳</span></div>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+</div>
+<details><summary>השוואה מלאה</summary>
+<div class="matrix">${PARTIES.map(p=>`<div><strong>${p}</strong><span>אמת: ${r.results[p]||0}</span>${ranked.map(x=>`<em>${esc(x.name)}: ${x.seats[p]||0}</em>`).join("")}</div>`).join("")}</div>
+</details></section>`;
+}else{
+body=`<section class="panel">
+<h2>כל התחזיות על השולחן</h2>
+<div class="cards">
+${r.predictions?.length?r.predictions.map(x=>`<details><summary>${esc(x.name)}</summary>${PARTIES.map(p=>`<p><span>${p}</span><b>${x.seats[p]||0}</b></p>`).join("")}</details>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+</div>
+${state.admin?'<button class="primary" data-action="results">הזנת תוצאות האמת</button>':""}
+</section>`;
 }
 
-async function seal(value, env) {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const cleartext = encoder.encode(JSON.stringify(value));
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    await encryptionKey(env),
-    cleartext
-  );
-  return {
-    ciphertext: toBase64(new Uint8Array(encrypted)),
-    iv: toBase64(iv)
-  };
+const statusClass=r.revealed?"open":r.closed?"waiting":"sealed";
+const statusIcon=r.revealed?"✓":r.closed?"⏳":"⌁";
+const statusTitle=r.revealed?"התחזיות נחשפו":r.closed?"ההגשה נסגרה":"הכספת נעולה";
+const statusText=r.revealed
+?`${r.count} תחזיות במשחק`
+:r.closed
+?`החשיפה: ${new Date(r.revealAt).toLocaleString("he-IL")}`
+:`הגשה עד ${new Date(r.closeAt).toLocaleString("he-IL")} · חשיפה ${new Date(r.revealAt).toLocaleString("he-IL")}`;
+
+app.innerHTML=`<section class="shell">
+<button class="back" data-action="home">→ חזרה למסך הראשי</button>
+<header class="roomHead">
+<div><small>חדר ${esc(r.code)}</small><h1>${esc(r.title)}</h1></div>
+<button class="share" data-action="share">שיתוף</button>
+</header>
+<section class="status ${statusClass}">
+<span class="icon">${statusIcon}</span>
+<div><strong>${statusTitle}</strong><span>${statusText}</span></div>
+</section>
+${body}
+${state.message?`<div class="toast">${esc(state.message)}</div>`:""}
+${state.resultMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="close">×</button>
+<h2>תוצאות האמת</h2>
+${!r.revealed?'<div class="notice">התוצאות יישמרו, אך התחזיות והדירוג יישארו חסויים עד למועד שנקבע.</div>':""}
+${partyList(true)}
+${totalBox()}
+<button id="resultsSave" class="primary" data-action="saveResults" ${state.busy||total()!==120?"disabled":""}>שמירת התוצאות</button>
+</section></div>`:""}
+</section>`;
 }
 
-async function unseal(ciphertext, iv, env) {
-  const cleartext = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv: fromBase64(iv) },
-    await encryptionKey(env),
-    fromBase64(ciphertext)
-  );
-  return JSON.parse(decoder.decode(cleartext));
-}
+function bind(){
+app.querySelectorAll("[data-action]").forEach(el=>el.addEventListener("click",handleAction));
 
-function normalizeSeats(seats) {
-  if (seats?.["עמך ישראל"] === undefined && seats?.["וינטר"] !== undefined) {
-    return { ...seats, "עמך ישראל": seats["וינטר"] };
-  }
-  return seats;
-}
+app.querySelectorAll(".seatInput").forEach(el=>el.addEventListener("input",e=>{
+state.seats[e.target.dataset.party]=Math.max(0,Math.min(120,Number(e.target.value)||0));
+refreshTotals();
+}));
 
-function validSeats(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  return PARTIES.every(party => Number.isInteger(value[party]) && value[party] >= 0 && value[party] <= 120)
-    && PARTIES.reduce((sum, party) => sum + value[party], 0) === 120;
-}
+const jc=document.getElementById("joinCode");
+if(jc)jc.addEventListener("input",e=>state.code=e.target.value.toUpperCase());
 
-async function createRoom(request, env) {
-  const body = await request.json();
-  const title = typeof body.title === "string" ? body.title.trim() : "";
-  const closeAt = Date.parse(body.closeAt || "");
-  const revealAt = Date.parse(body.revealAt || "");
-  if (!title || !Number.isFinite(closeAt) || closeAt <= Date.now()) {
-    return json({ error: "יש להזין שם ומועד עתידי לסגירת ההגשות" }, 400);
-  }
-  if (!Number.isFinite(revealAt) || revealAt <= closeAt) {
-    return json({ error: "מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות" }, 400);
-  }
+const nf=document.getElementById("playerName");
+if(nf)nf.addEventListener("input",e=>state.name=e.target.value);
 
-  let code;
-  for (let attempt = 0; attempt < 10; attempt++) {
-    code = randomToken(5).slice(0, 6).toUpperCase();
-    const existing = await env.DB.prepare("SELECT code FROM rooms WHERE code = ?")
-      .bind(code).first();
-    if (!existing) break;
-  }
+const cf=document.getElementById("createForm");
+if(cf)cf.addEventListener("submit",createRoom);
 
-  const adminToken = randomToken(24);
-  await env.DB.prepare(
-    "INSERT INTO rooms (code, title, close_at, reveal_at, admin_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)"
-  ).bind(code, title.slice(0, 80), closeAt, revealAt, await hash(adminToken), Date.now()).run();
+const pf=document.getElementById("predictionForm");
+if(pf)pf.addEventListener("submit",savePrediction);
 
-  return json({ code, adminToken });
-}
+const close=document.getElementById("closeAt");
+const reveal=document.getElementById("revealAt");
 
-async function getRoom(code, env) {
-  const room = await env.DB.prepare(
-    "SELECT code, title, close_at, reveal_at, results_json FROM rooms WHERE code = ?"
-  ).bind(code).first();
-
-  if (!room) return json({ error: "החדר לא נמצא" }, 404);
-
-  const rows = await env.DB.prepare(
-    "SELECT name, ciphertext, iv, updated_at FROM predictions WHERE room_code = ? ORDER BY updated_at"
-  ).bind(room.code).all();
-
-  const closeAt = room.close_at ?? room.reveal_at;
-  const revealed = Date.now() >= room.reveal_at;
-  const base = {
-    code: room.code,
-    title: room.title,
-    closeAt: new Date(closeAt).toISOString(),
-    revealAt: new Date(room.reveal_at).toISOString(),
-    closed: Date.now() >= closeAt,
-    revealed,
-    count: rows.results.length
-  };
-
-  // לפני מועד החשיפה מוחזרים רק פרטי החדר ומספר המשתתפים.
-  if (!revealed) return json(base);
-
-  const predictions = await Promise.all(rows.results.map(async row => ({
-    name: row.name,
-    seats: normalizeSeats(await unseal(row.ciphertext, row.iv, env)),
-    submittedAt: new Date(row.updated_at).toISOString()
-  })));
-
-  return json({
-    ...base,
-    predictions,
-    results: room.results_json ? normalizeSeats(JSON.parse(room.results_json)) : null
-  });
-}
-
-async function savePrediction(request, code, env) {
-  const body = await request.json();
-  const name = typeof body.name === "string" ? body.name.trim() : "";
-  if (!name || !validSeats(body.seats)) {
-    return json({ error: "יש להזין שם ולחלק בדיוק 120 מנדטים" }, 400);
-  }
-
-  const room = await env.DB.prepare("SELECT close_at, reveal_at FROM rooms WHERE code = ?")
-    .bind(code).first();
-  if (!room) return json({ error: "החדר לא נמצא" }, 404);
-  if (Date.now() >= (room.close_at ?? room.reveal_at)) {
-    return json({ error: "מועד הגשת התחזיות הסתיים" }, 403);
-  }
-
-  const editToken = body.token || randomToken(24);
-  const tokenHash = await hash(editToken);
-  const encrypted = await seal(body.seats, env);
-  const now = Date.now();
-
-  if (body.token) {
-    const existing = await env.DB.prepare(
-      "SELECT id FROM predictions WHERE room_code = ? AND token_hash = ?"
-    ).bind(code, tokenHash).first();
-    if (!existing) return json({ error: "קישור העריכה אינו תקין" }, 403);
-    await env.DB.prepare(
-      "UPDATE predictions SET name = ?, ciphertext = ?, iv = ?, updated_at = ? WHERE id = ?"
-    ).bind(name.slice(0, 40), encrypted.ciphertext, encrypted.iv, now, existing.id).run();
-  } else {
-    await env.DB.prepare(
-      "INSERT INTO predictions (id, room_code, name, ciphertext, iv, token_hash, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)"
-    ).bind(crypto.randomUUID(), code, name.slice(0, 40), encrypted.ciphertext, encrypted.iv, tokenHash, now).run();
-  }
-
-  return json({ ok: true, token: editToken });
-}
-
-async function saveResults(request, code, env) {
-  const body = await request.json();
-  if (!body.adminToken || !validSeats(body.seats)) {
-    return json({ error: "נתונים לא תקינים" }, 400);
-  }
-
-  const room = await env.DB.prepare("SELECT admin_hash FROM rooms WHERE code = ?")
-    .bind(code).first();
-  if (!room || await hash(body.adminToken) !== room.admin_hash) {
-    return json({ error: "אין הרשאת מנהל" }, 403);
-  }
-
-  await env.DB.prepare("UPDATE rooms SET results_json = ? WHERE code = ?")
-    .bind(JSON.stringify(body.seats), code).run();
-  return json({ ok: true });
-}
-
-async function handleApi(request, env) {
-  if (!env.DB) return json({ error: "מסד הנתונים אינו מחובר" }, 500);
-  const url = new URL(request.url);
-  const path = url.pathname.replace(/\/+$/, "") || "/";
-
-  if (request.method === "POST" && path === "/api/rooms") {
-    return createRoom(request, env);
-  }
-
-  const roomMatch = path.match(/^\/api\/rooms\/([A-Za-z0-9]+)$/);
-  if (request.method === "GET" && roomMatch) {
-    return getRoom(roomMatch[1].toUpperCase(), env);
-  }
-
-  const predictionMatch = path.match(/^\/api\/rooms\/([A-Za-z0-9]+)\/predictions$/);
-  if (request.method === "POST" && predictionMatch) {
-    return savePrediction(request, predictionMatch[1].toUpperCase(), env);
-  }
-
-  const resultsMatch = path.match(/^\/api\/rooms\/([A-Za-z0-9]+)\/results$/);
-  if (request.method === "POST" && resultsMatch) {
-    return saveResults(request, resultsMatch[1].toUpperCase(), env);
-  }
-
-  return json({ error: "הכתובת לא נמצאה" }, 404);
-}
-
-export default {
-  async fetch(request, env) {
-    try {
-      const url = new URL(request.url);
-      if (url.pathname.startsWith("/api/")) return await handleApi(request, env);
-      return env.ASSETS.fetch(request);
-    } catch (error) {
-      console.error(error);
-      return json({ error: "אירעה שגיאה. נסו שוב בעוד רגע" }, 500);
-    }
-  }
+if(close&&reveal&&!close.value){
+const localValue=d=>{
+const x=new Date(d);
+x.setMinutes(x.getMinutes()-x.getTimezoneOffset());
+return x.toISOString().slice(0,16);
 };
+const now=Date.now();
+close.min=localValue(now+60000);
+close.value=localValue(now+86400000);
+reveal.min=close.value;
+reveal.value=localValue(now+90000000);
+
+close.addEventListener("change",()=>{
+reveal.min=close.value;
+if(reveal.value<=close.value){
+const d=new Date(close.value);
+d.setHours(d.getHours()+1);
+reveal.value=localValue(d);
+}
+});
+}
+}
+
+async function handleAction(e){
+const a=e.currentTarget.dataset.action;
+const p=e.currentTarget.dataset.party;
+
+if(a==="goCreate"){
+state.screen="create";state.message="";render();
+}else if(a==="home"){
+state.screen="home";state.room=null;state.resultMode=false;state.message="";
+history.replaceState({},"",location.pathname);render();
+}else if(a==="join"){
+loadRoom(state.code);
+}else if(a==="plus"||a==="minus"){
+state.seats[p]=Math.max(0,state.seats[p]+(a==="plus"?1:-1));
+const input=e.currentTarget.closest(".party")?.querySelector(".seatInput");
+if(input)input.value=state.seats[p];
+refreshTotals();
+}else if(a==="results"){
+state.seats=blank();state.resultMode=true;render();
+}else if(a==="close"){
+state.resultMode=false;render();
+}else if(a==="saveResults"){
+saveResults();
+}else if(a==="share"){
+shareRoom();
+}
+}
+
+async function api(path,options){
+const res=await fetch(API_BASE+path,options);
+const data=await res.json().catch(()=>({}));
+if(!res.ok)throw Error(data.error||"אירעה שגיאה");
+return data;
+}
+
+async function createRoom(e){
+e.preventDefault();
+const f=new FormData(e.currentTarget);
+const title=f.get("title");
+const closeAt=Date.parse(String(f.get("closeAt")));
+const revealAt=Date.parse(String(f.get("revealAt")));
+
+if(!Number.isFinite(closeAt)||!Number.isFinite(revealAt)||revealAt<=closeAt){
+state.message="מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות";
+return render();
+}
+
+state.busy=true;state.message="";render();
+
+try{
+const d=await api("/api/rooms",{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({
+title,
+closeAt:new Date(closeAt).toISOString(),
+revealAt:new Date(revealAt).toISOString()
+})
+});
+
+state.code=d.code;
+state.admin=d.adminToken;
+localStorage.setItem(`ad120-admin-${d.code}`,d.adminToken);
+history.replaceState({},"",`?room=${d.code}`);
+await loadRoom(d.code,d.adminToken);
+}catch(err){
+state.message=err.message;
+state.busy=false;
+state.screen="create";
+render();
+}
+}
+
+async function loadRoom(code,admin=""){
+if(!code?.trim()){
+state.message="יש להזין קוד חדר";
+return render();
+}
+
+state.busy=true;
+state.screen="loading";
+render();
+
+try{
+const c=code.trim().toUpperCase();
+const savedAdmin=localStorage.getItem(`ad120-admin-${c}`)||"";
+const d=await api(`/api/rooms/${encodeURIComponent(c)}`,{cache:"no-store"});
+
+state.code=c;
+state.admin=admin||savedAdmin;
+state.room=d;
+state.screen="room";
+state.message="";
+
+if(state.admin)localStorage.setItem(`ad120-admin-${c}`,state.admin);
+history.replaceState({},"",`?room=${c}`);
+}catch(err){
+state.message=err.message;
+state.screen="home";
+}finally{
+state.busy=false;
+render();
+}
+}
+
+async function savePrediction(e){
+e.preventDefault();
+if(total()!==120||!state.name.trim())return;
+
+state.busy=true;
+render();
+
+try{
+const key=`ad120-${state.code}`;
+const editToken=localStorage.getItem(key)||undefined;
+
+const d=await api(`/api/rooms/${state.code}/predictions`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({
+name:state.name,
+seats:state.seats,
+token:editToken
+})
+});
+
+localStorage.setItem(key,d.token);
+state.message="התחזית נשמרה בכספת. אפשר לעדכן עד מועד סגירת ההגשות.";
+await loadRoom(state.code,state.admin);
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function saveResults(){
+if(total()!==120)return;
+state.busy=true;
+render();
+
+try{
+await api(`/api/rooms/${state.code}/results`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({adminToken:state.admin,seats:state.seats})
+});
+
+state.resultMode=false;
+state.message="תוצאות האמת נשמרו";
+await loadRoom(state.code,state.admin);
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function shareRoom(){
+const url=`${location.origin}${location.pathname}?room=${state.room.code}`;
+try{
+if(navigator.share){
+await navigator.share({title:state.room.title,url});
+}else{
+await navigator.clipboard.writeText(url);
+state.message="הקישור הועתק";
+render();
+}
+}catch{}
+}
+
+const qs=new URLSearchParams(location.search);
+const c=qs.get("room");
+const a=qs.get("admin")||"";
+
+if(c){
+state.code=c.toUpperCase();
+if(a)localStorage.setItem(`ad120-admin-${state.code}`,a);
+loadRoom(state.code,a);
+}else{
+render();
+}
+
+setInterval(()=>{
+if(!state.room||state.resultMode)return;
+const now=Date.now();
+const shouldClose=!state.room.closed&&now>=Date.parse(state.room.closeAt);
+const shouldReveal=!state.room.revealed&&now>=Date.parse(state.room.revealAt);
+if(shouldClose||shouldReveal)loadRoom(state.code,state.admin);
+},5000);
+
+})();
+</script>
+</body>
+</html>
