@@ -80,9 +80,13 @@ function validSeats(value) {
 async function createRoom(request, env) {
   const body = await request.json();
   const title = typeof body.title === "string" ? body.title.trim() : "";
+  const closeAt = Date.parse(body.closeAt || "");
   const revealAt = Date.parse(body.revealAt || "");
-  if (!title || !Number.isFinite(revealAt) || revealAt <= Date.now()) {
-    return json({ error: "יש להזין שם ומועד חשיפה עתידי" }, 400);
+  if (!title || !Number.isFinite(closeAt) || closeAt <= Date.now()) {
+    return json({ error: "יש להזין שם ומועד עתידי לסגירת ההגשות" }, 400);
+  }
+  if (!Number.isFinite(revealAt) || revealAt <= closeAt) {
+    return json({ error: "מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות" }, 400);
   }
 
   let code;
@@ -95,15 +99,15 @@ async function createRoom(request, env) {
 
   const adminToken = randomToken(24);
   await env.DB.prepare(
-    "INSERT INTO rooms (code, title, reveal_at, admin_hash, created_at) VALUES (?, ?, ?, ?, ?)"
-  ).bind(code, title.slice(0, 80), revealAt, await hash(adminToken), Date.now()).run();
+    "INSERT INTO rooms (code, title, close_at, reveal_at, admin_hash, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(code, title.slice(0, 80), closeAt, revealAt, await hash(adminToken), Date.now()).run();
 
   return json({ code, adminToken });
 }
 
 async function getRoom(code, env) {
   const room = await env.DB.prepare(
-    "SELECT code, title, reveal_at, results_json FROM rooms WHERE code = ?"
+    "SELECT code, title, close_at, reveal_at, results_json FROM rooms WHERE code = ?"
   ).bind(code).first();
 
   if (!room) return json({ error: "החדר לא נמצא" }, 404);
@@ -112,11 +116,14 @@ async function getRoom(code, env) {
     "SELECT name, ciphertext, iv, updated_at FROM predictions WHERE room_code = ? ORDER BY updated_at"
   ).bind(room.code).all();
 
+  const closeAt = room.close_at ?? room.reveal_at;
   const revealed = Date.now() >= room.reveal_at;
   const base = {
     code: room.code,
     title: room.title,
+    closeAt: new Date(closeAt).toISOString(),
     revealAt: new Date(room.reveal_at).toISOString(),
+    closed: Date.now() >= closeAt,
     revealed,
     count: rows.results.length
   };
@@ -144,11 +151,11 @@ async function savePrediction(request, code, env) {
     return json({ error: "יש להזין שם ולחלק בדיוק 120 מנדטים" }, 400);
   }
 
-  const room = await env.DB.prepare("SELECT reveal_at FROM rooms WHERE code = ?")
+  const room = await env.DB.prepare("SELECT close_at, reveal_at FROM rooms WHERE code = ?")
     .bind(code).first();
   if (!room) return json({ error: "החדר לא נמצא" }, 404);
-  if (Date.now() >= room.reveal_at) {
-    return json({ error: "התחזיות כבר נחשפו ולא ניתן לערוך" }, 403);
+  if (Date.now() >= (room.close_at ?? room.reveal_at)) {
+    return json({ error: "מועד הגשת התחזיות הסתיים" }, 403);
   }
 
   const editToken = body.token || randomToken(24);
