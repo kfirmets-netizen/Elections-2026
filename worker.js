@@ -64,7 +64,6 @@ function json(data, status = 200) {
 
 function randomToken(bytes = 24) {
   const data = crypto.getRandomValues(new Uint8Array(bytes));
-
   return Array.from(data, byte =>
     byte.toString(16).padStart(2, "0")
   ).join("");
@@ -72,11 +71,7 @@ function randomToken(bytes = 24) {
 
 function toBase64(bytes) {
   let value = "";
-
-  for (const byte of bytes) {
-    value += String.fromCharCode(byte);
-  }
-
+  for (const byte of bytes) value += String.fromCharCode(byte);
   return btoa(value);
 }
 
@@ -92,14 +87,11 @@ async function hash(value) {
     "SHA-256",
     encoder.encode(value)
   );
-
   return toBase64(new Uint8Array(digest));
 }
 
 async function encryptionKey(env) {
-  if (!env.SEAL_KEY) {
-    throw new Error("SEAL_KEY is missing");
-  }
+  if (!env.SEAL_KEY) throw new Error("SEAL_KEY is missing");
 
   const raw = fromBase64(env.SEAL_KEY);
 
@@ -146,26 +138,23 @@ async function unseal(ciphertext, iv, env) {
 }
 
 function normalizeSeats(seats) {
-  if (!seats || typeof seats !== "object") {
-    return seats;
-  }
+  if (!seats || typeof seats !== "object") return seats;
 
-  return Object.fromEntries(PARTIES.map(party => {
-    const oldName = OLD_NAMES[party];
+  return Object.fromEntries(
+    PARTIES.map(party => {
+      const oldName = OLD_NAMES[party];
+      const legacyValue =
+        party === "עמך ישראל" ? seats["וינטר"] : undefined;
 
-    const legacyValue =
-      party === "עמך ישראל"
-        ? seats["וינטר"]
-        : undefined;
-
-    return [
-      party,
-      seats[party] ??
-      (oldName ? seats[oldName] : undefined) ??
-      legacyValue ??
-      0
-    ];
-  }));
+      return [
+        party,
+        seats[party] ??
+          (oldName ? seats[oldName] : undefined) ??
+          legacyValue ??
+          0
+      ];
+    })
+  );
 }
 
 function validSeats(value) {
@@ -181,15 +170,13 @@ function validSeats(value) {
 
   return (
     values.length === PARTIES.length &&
-    values.every(seats =>
-      Number.isInteger(seats) &&
-      seats >= 0 &&
-      seats <= 120
+    values.every(
+      seats =>
+        Number.isInteger(seats) &&
+        seats >= 0 &&
+        seats <= 120
     ) &&
-    values.reduce(
-      (sum, seats) => sum + seats,
-      0
-    ) === 120
+    values.reduce((sum, seats) => sum + seats, 0) === 120
   );
 }
 
@@ -209,18 +196,26 @@ async function createRoom(request, env) {
     !Number.isFinite(closeAt) ||
     closeAt <= Date.now()
   ) {
-    return json({
-      error: "יש להזין שם ומועד עתידי לסגירת ההגשות"
-    }, 400);
+    return json(
+      {
+        error:
+          "יש להזין שם ומועד עתידי לסגירת ההגשות"
+      },
+      400
+    );
   }
 
   if (
     !Number.isFinite(revealAt) ||
     revealAt <= closeAt
   ) {
-    return json({
-      error: "מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות"
-    }, 400);
+    return json(
+      {
+        error:
+          "מועד החשיפה חייב להיות אחרי מועד סגירת ההגשות"
+      },
+      400
+    );
   }
 
   let code;
@@ -233,9 +228,7 @@ async function createRoom(request, env) {
       .bind(code)
       .first();
 
-    if (!existing) {
-      break;
-    }
+    if (!existing) break;
   }
 
   const adminToken = randomToken(24);
@@ -244,14 +237,16 @@ async function createRoom(request, env) {
     `INSERT INTO rooms
     (code, title, close_at, reveal_at, admin_hash, created_at)
     VALUES (?, ?, ?, ?, ?, ?)`
-  ).bind(
-    code,
-    title.slice(0, 80),
-    closeAt,
-    revealAt,
-    await hash(adminToken),
-    Date.now()
-  ).run();
+  )
+    .bind(
+      code,
+      title.slice(0, 80),
+      closeAt,
+      revealAt,
+      await hash(adminToken),
+      Date.now()
+    )
+    .run();
 
   return json({
     code,
@@ -261,26 +256,43 @@ async function createRoom(request, env) {
 
 async function getRoom(code, env) {
   const room = await env.DB.prepare(
-    `SELECT code, title, close_at, reveal_at, results_json
-     FROM rooms
-     WHERE code = ?`
-  ).bind(code).first();
+    `SELECT
+      code,
+      title,
+      close_at,
+      reveal_at,
+      results_json
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
 
   if (!room) {
-    return json({
-      error: "החדר לא נמצא"
-    }, 404);
+    return json(
+      { error: "החדר לא נמצא" },
+      404
+    );
   }
 
   const rows = await env.DB.prepare(
-    `SELECT name, ciphertext, iv, updated_at
-     FROM predictions
-     WHERE room_code = ?
-     ORDER BY updated_at`
-  ).bind(room.code).all();
+    `SELECT
+      name,
+      ciphertext,
+      iv,
+      updated_at
+    FROM predictions
+    WHERE room_code = ?
+    ORDER BY updated_at`
+  )
+    .bind(room.code)
+    .all();
 
-  const closeAt = room.close_at ?? room.reveal_at;
-  const revealed = Date.now() >= room.reveal_at;
+  const closeAt =
+    room.close_at ?? room.reveal_at;
+
+  const revealed =
+    Date.now() >= room.reveal_at;
 
   const base = {
     code: room.code,
@@ -317,7 +329,9 @@ async function getRoom(code, env) {
     ...base,
     predictions,
     results: room.results_json
-      ? normalizeSeats(JSON.parse(room.results_json))
+      ? normalizeSeats(
+          JSON.parse(room.results_json)
+        )
       : null
   });
 }
@@ -331,30 +345,41 @@ async function savePrediction(request, code, env) {
       : "";
 
   if (!name || !validSeats(body.seats)) {
-    return json({
-      error: "יש להזין שם ולחלק בדיוק 120 מנדטים"
-    }, 400);
+    return json(
+      {
+        error:
+          "יש להזין שם ולחלק בדיוק 120 מנדטים"
+      },
+      400
+    );
   }
 
   const room = await env.DB.prepare(
     `SELECT close_at, reveal_at
-     FROM rooms
-     WHERE code = ?`
-  ).bind(code).first();
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
 
   if (!room) {
-    return json({
-      error: "החדר לא נמצא"
-    }, 404);
+    return json(
+      { error: "החדר לא נמצא" },
+      404
+    );
   }
 
   if (
     Date.now() >=
     (room.close_at ?? room.reveal_at)
   ) {
-    return json({
-      error: "מועד הגשת התחזיות הסתיים"
-    }, 403);
+    return json(
+      {
+        error:
+          "מועד הגשת התחזיות הסתיים"
+      },
+      403
+    );
   }
 
   const editToken =
@@ -371,48 +396,64 @@ async function savePrediction(request, code, env) {
   if (body.token) {
     const existing = await env.DB.prepare(
       `SELECT id
-       FROM predictions
-       WHERE room_code = ?
-       AND token_hash = ?`
-    ).bind(
-      code,
-      tokenHash
-    ).first();
+      FROM predictions
+      WHERE room_code = ?
+      AND token_hash = ?`
+    )
+      .bind(code, tokenHash)
+      .first();
 
     if (!existing) {
-      return json({
-        error: "קישור העריכה אינו תקין"
-      }, 403);
+      return json(
+        {
+          error:
+            "קישור העריכה אינו תקין"
+        },
+        403
+      );
     }
 
     await env.DB.prepare(
       `UPDATE predictions
-       SET name = ?,
-           ciphertext = ?,
-           iv = ?,
-           updated_at = ?
-       WHERE id = ?`
-    ).bind(
-      name.slice(0, 40),
-      encrypted.ciphertext,
-      encrypted.iv,
-      now,
-      existing.id
-    ).run();
+      SET
+        name = ?,
+        ciphertext = ?,
+        iv = ?,
+        updated_at = ?
+      WHERE id = ?`
+    )
+      .bind(
+        name.slice(0, 40),
+        encrypted.ciphertext,
+        encrypted.iv,
+        now,
+        existing.id
+      )
+      .run();
   } else {
     await env.DB.prepare(
       `INSERT INTO predictions
-       (id, room_code, name, ciphertext, iv, token_hash, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      crypto.randomUUID(),
-      code,
-      name.slice(0, 40),
-      encrypted.ciphertext,
-      encrypted.iv,
-      tokenHash,
-      now
-    ).run();
+      (
+        id,
+        room_code,
+        name,
+        ciphertext,
+        iv,
+        token_hash,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(
+        crypto.randomUUID(),
+        code,
+        name.slice(0, 40),
+        encrypted.ciphertext,
+        encrypted.iv,
+        tokenHash,
+        now
+      )
+      .run();
   }
 
   return json({
@@ -421,59 +462,216 @@ async function savePrediction(request, code, env) {
   });
 }
 
-async function saveResults(request, code, env) {
+async function verifyAdmin(request, code, env) {
+  const body = await request.json();
+
+  const adminToken =
+    typeof body.adminToken === "string"
+      ? body.adminToken.trim()
+      : "";
+
+  if (!adminToken) {
+    return json(
+      { error: "יש להזין קוד מארגן" },
+      400
+    );
+  }
+
+  const room = await env.DB.prepare(
+    `SELECT admin_hash
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
+
+  if (!room) {
+    return json(
+      { error: "החדר לא נמצא" },
+      404
+    );
+  }
+
+  if (
+    await hash(adminToken) !==
+    room.admin_hash
+  ) {
+    return json(
+      {
+        error:
+          "קוד המארגן אינו תקין"
+      },
+      403
+    );
+  }
+
+  return json({ ok: true });
+}
+
+async function updateCloseAt(
+  request,
+  code,
+  env
+) {
+  const body = await request.json();
+
+  const adminToken =
+    typeof body.adminToken === "string"
+      ? body.adminToken.trim()
+      : "";
+
+  const closeAt =
+    Date.parse(body.closeAt || "");
+
+  if (
+    !adminToken ||
+    !Number.isFinite(closeAt)
+  ) {
+    return json(
+      {
+        error:
+          "יש להזין קוד מארגן ומועד חדש"
+      },
+      400
+    );
+  }
+
+  const room = await env.DB.prepare(
+    `SELECT admin_hash, reveal_at
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
+
+  if (!room) {
+    return json(
+      { error: "החדר לא נמצא" },
+      404
+    );
+  }
+
+  if (
+    await hash(adminToken) !==
+    room.admin_hash
+  ) {
+    return json(
+      { error: "אין הרשאת מארגן" },
+      403
+    );
+  }
+
+  if (Date.now() >= room.reveal_at) {
+    return json(
+      {
+        error:
+          "לא ניתן לשנות את מועד ההגשה לאחר חשיפת התחזיות"
+      },
+      400
+    );
+  }
+
+  if (closeAt <= Date.now()) {
+    return json(
+      {
+        error:
+          "המועד החדש חייב להיות בעתיד"
+      },
+      400
+    );
+  }
+
+  if (closeAt >= room.reveal_at) {
+    return json(
+      {
+        error:
+          "מועד ההגשה חייב להיות לפני מועד החשיפה"
+      },
+      400
+    );
+  }
+
+  await env.DB.prepare(
+    `UPDATE rooms
+    SET close_at = ?
+    WHERE code = ?`
+  )
+    .bind(closeAt, code)
+    .run();
+
+  return json({
+    ok: true,
+    closeAt:
+      new Date(closeAt).toISOString()
+  });
+}
+
+async function saveResults(
+  request,
+  code,
+  env
+) {
   const body = await request.json();
 
   if (
     !body.adminToken ||
     !validSeats(body.seats)
   ) {
-    return json({
-      error: "נתונים לא תקינים"
-    }, 400);
+    return json(
+      { error: "נתונים לא תקינים" },
+      400
+    );
   }
 
   const room = await env.DB.prepare(
     `SELECT admin_hash
-     FROM rooms
-     WHERE code = ?`
-  ).bind(code).first();
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
 
   if (
     !room ||
     await hash(body.adminToken) !==
       room.admin_hash
   ) {
-    return json({
-      error: "אין הרשאת מנהל"
-    }, 403);
+    return json(
+      { error: "אין הרשאת מנהל" },
+      403
+    );
   }
 
   await env.DB.prepare(
     `UPDATE rooms
-     SET results_json = ?
-     WHERE code = ?`
-  ).bind(
-    JSON.stringify(body.seats),
-    code
-  ).run();
+    SET results_json = ?
+    WHERE code = ?`
+  )
+    .bind(
+      JSON.stringify(body.seats),
+      code
+    )
+    .run();
 
-  return json({
-    ok: true
-  });
+  return json({ ok: true });
 }
 
 async function handleApi(request, env) {
   if (!env.DB) {
-    return json({
-      error: "מסד הנתונים אינו מחובר"
-    }, 500);
+    return json(
+      {
+        error:
+          "מסד הנתונים אינו מחובר"
+      },
+      500
+    );
   }
 
   const url = new URL(request.url);
 
   const path =
-    url.pathname.replace(/\/+$/, "") || "/";
+    url.pathname.replace(/\/+$/, "") ||
+    "/";
 
   if (
     request.method === "POST" &&
@@ -482,10 +680,9 @@ async function handleApi(request, env) {
     return createRoom(request, env);
   }
 
-  const roomMatch =
-    path.match(
-      /^\/api\/rooms\/([A-Za-z0-9]+)$/
-    );
+  const roomMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)$/
+  );
 
   if (
     request.method === "GET" &&
@@ -497,10 +694,9 @@ async function handleApi(request, env) {
     );
   }
 
-  const predictionMatch =
-    path.match(
-      /^\/api\/rooms\/([A-Za-z0-9]+)\/predictions$/
-    );
+  const predictionMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/predictions$/
+  );
 
   if (
     request.method === "POST" &&
@@ -513,10 +709,39 @@ async function handleApi(request, env) {
     );
   }
 
-  const resultsMatch =
-    path.match(
-      /^\/api\/rooms\/([A-Za-z0-9]+)\/results$/
+  const adminMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/admin$/
+  );
+
+  if (
+    request.method === "POST" &&
+    adminMatch
+  ) {
+    return verifyAdmin(
+      request,
+      adminMatch[1].toUpperCase(),
+      env
     );
+  }
+
+  const closeAtMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/close-at$/
+  );
+
+  if (
+    request.method === "PUT" &&
+    closeAtMatch
+  ) {
+    return updateCloseAt(
+      request,
+      closeAtMatch[1].toUpperCase(),
+      env
+    );
+  }
+
+  const resultsMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/results$/
+  );
 
   if (
     request.method === "POST" &&
@@ -529,9 +754,10 @@ async function handleApi(request, env) {
     );
   }
 
-  return json({
-    error: "הכתובת לא נמצאה"
-  }, 404);
+  return json(
+    { error: "הכתובת לא נמצאה" },
+    404
+  );
 }
 
 export default {
@@ -539,7 +765,9 @@ export default {
     try {
       const url = new URL(request.url);
 
-      if (url.pathname.startsWith("/api/")) {
+      if (
+        url.pathname.startsWith("/api/")
+      ) {
         return await handleApi(
           request,
           env
@@ -550,9 +778,13 @@ export default {
     } catch (error) {
       console.error(error);
 
-      return json({
-        error: "אירעה שגיאה. נסו שוב בעוד רגע"
-      }, 500);
+      return json(
+        {
+          error:
+            "אירעה שגיאה. נסו שוב בעוד רגע"
+        },
+        500
+      );
     }
   }
 };
