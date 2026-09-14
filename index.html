@@ -7,12 +7,12 @@
 <title>עד 120</title>
 <meta name="description" content="משחק תחזיות לבחירות בישראל — התחזיות נשארות חסויות עד מועד החשיפה">
 <style>
-:root{--ink:#101828;--muted:#5d6b7e;--blue:#1249d8;--blue2:#0b36a7;--line:#dfe5ee;--bg:#f5f7fb;--good:#116033;--bad:#b42318;--shadow:0 16px 50px #26376212}
+:root{--ink:#101828;--muted:#5d6b7e;--blue:#1249d8;--line:#dfe5ee;--bg:#f5f7fb;--good:#116033;--bad:#b42318;--shadow:0 16px 50px #26376212}
 *{box-sizing:border-box}html{background:var(--bg);direction:rtl}body{margin:0;color:var(--ink);font:16px/1.45 Arial,sans-serif;background:radial-gradient(circle at 10% 0,#dce7ff 0,transparent 34%),var(--bg);min-height:100vh}
 button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{min-height:100dvh;max-width:600px;margin:auto;padding:24px 18px 80px}.home{display:flex;flex-direction:column;justify-content:center}
 .brand{margin:0 auto 28px;width:min(100%,360px)}.logoLockup{display:flex;align-items:center;justify-content:center;gap:18px}.logoIcon{width:112px;height:112px}.wordmark{font-size:58px;font-weight:900;white-space:nowrap}
 .hero,.panel{background:#fff;border:1px solid #e6eaf1;border-radius:26px;padding:24px;box-shadow:var(--shadow)}.hero h1{font-size:32px;line-height:1.12;margin:0 0 12px}.hero p{color:var(--muted);margin:0 0 25px}
-.primary{width:100%;padding:16px;border-radius:15px;background:var(--blue);color:#fff}.primary:hover{background:var(--blue2)}button:disabled{opacity:.42;cursor:not-allowed}
+.primary{width:100%;padding:16px;border-radius:15px;background:var(--blue);color:#fff}.primary:hover{background:#0b36a7}button:disabled{opacity:.42;cursor:not-allowed}
 .join{display:grid;grid-template-columns:1fr 90px;gap:8px;margin-top:12px}.join button,.share{border:1px solid var(--line);border-radius:13px;background:#fff}.join input,input{border:1px solid var(--line);border-radius:12px;padding:13px;background:#fbfcfe;min-width:0}
 .features{display:flex;justify-content:space-between;gap:8px;margin-top:22px;color:var(--muted);font-size:12px;font-weight:700}.back{background:none;margin-bottom:18px;color:var(--muted);padding:7px 0}
 .panel h1{font-size:30px;margin:4px 0 24px}.panel h2{margin:5px 0 16px}.stack{display:grid;gap:17px}label{display:grid;gap:8px;font-size:14px;font-weight:700}
@@ -25,7 +25,8 @@ button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{
 .partyName{display:grid;gap:2px}.partyName small{font-size:11px;color:#64748b}.number{width:29px;height:29px;background:#edf2ff;color:var(--blue);display:grid;place-items:center;border-radius:9px;font-size:12px}
 .step{display:grid;grid-template-columns:35px 42px 35px;direction:ltr;border:1px solid var(--line);border-radius:11px;overflow:hidden}.step button{background:#f5f7fa;font-size:20px}.step input{border:0;border-radius:0;text-align:center;padding:8px 0;width:42px;font-weight:900;background:#fff}
 .total{position:sticky;bottom:79px;display:flex;justify-content:space-between;margin:14px 0 9px;padding:13px 16px;background:#fff3f0;color:var(--bad);border-radius:13px;border:1px solid #ffd4cc;z-index:2}.total.good{background:#e9f9ef;color:var(--good);border-color:#b9e7c8}
-.sticky{position:sticky;bottom:14px;z-index:2}.adminResult{width:100%;margin-top:12px;padding:13px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#536071}
+.sticky{position:sticky;bottom:14px;z-index:2}
+.adminPanel{margin:14px 0;padding:16px;background:#eef3ff;border:1px solid #cfdbff;border-radius:18px}.adminPanel h3{margin:0 0 8px}.adminPanel p{margin:7px 0;color:#46566d;font-size:13px}.adminCode{display:grid;grid-template-columns:1fr auto;gap:8px;direction:ltr;margin:12px 0}.adminCode code{overflow:auto;white-space:nowrap;padding:12px;background:#fff;border:1px solid var(--line);border-radius:11px;font-size:12px}.adminCode button,.secondary{padding:11px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#26344b}.adminActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.organizerLogin{width:100%;margin:12px 0;padding:11px;background:transparent;color:#536071;text-decoration:underline}.warning{background:#fff7db;color:#755600;border:1px solid #f0d97e;padding:12px;border-radius:12px;font-size:13px}.modal label{margin:14px 0}.modalActions{display:grid;gap:8px;margin-top:14px}
 .toast{position:fixed;z-index:30;bottom:18px;left:18px;right:18px;max-width:564px;margin:auto;background:var(--ink);color:#fff;padding:14px;border-radius:14px;text-align:center}
 .cards,.ranking{display:grid;gap:10px;margin:18px 0}.cards details,.rank{border:1px solid var(--line);border-radius:15px;padding:14px}.cards summary{font-weight:900;cursor:pointer}.cards p{display:flex;justify-content:space-between;margin:10px 0;color:var(--muted)}
 .rank{display:grid;grid-template-columns:38px 1fr auto;align-items:center}.rank .place{width:32px;height:32px;border-radius:50%;background:#fff1be;color:#855d00;display:grid;place-items:center}.rank span{font-size:13px;color:#64748b}
@@ -85,19 +86,38 @@ const PARTY_LISTS=[
 const PARTIES=PARTY_LISTS.map(x=>x.name);
 const LETTERS=Object.fromEntries(PARTY_LISTS.map(x=>[x.name,x.letters]));
 const API_BASE=(window.ELECTIONS_API_BASE||"").replace(/\/$/,"");
-const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,submitted:false};
+const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,deadlineMode:false,adminMode:false,submitted:false};
 const app=document.getElementById("app");
 
 function blank(){return Object.fromEntries(PARTIES.map(p=>[p,0]))}
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function total(){return Object.values(state.seats).reduce((a,b)=>a+(Number(b)||0),0)}
+function localDateTimeValue(value){const d=new Date(value);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)}
 
 function logo(){
-return `<div class="logoLockup" role="img" aria-label="עד 120"><span class="wordmark">עד 120</span><svg class="logoIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140"><rect width="140" height="140" rx="36" fill="#1249d8"/><path d="M36 71h68v43H36z" fill="none" stroke="#fff" stroke-width="8"/><path d="M50 53h42l12 18H36z" fill="#fff"/><text x="70" y="102" text-anchor="middle" font-family="Arial" font-size="29" font-weight="900" fill="#1249d8">120</text></svg></div>`;
+return `<div class="logoLockup" role="img" aria-label="עד 120">
+<span class="wordmark">עד 120</span>
+<svg class="logoIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 140" aria-hidden="true">
+<rect width="140" height="140" rx="36" fill="#1249d8"/>
+<path d="M36 71h68v43H36z" fill="none" stroke="#fff" stroke-width="8" stroke-linejoin="round"/>
+<path d="M50 53h42l12 18H36z" fill="#fff"/>
+<text x="70" y="102" text-anchor="middle" font-family="Arial,sans-serif" font-size="29" font-weight="900" fill="#1249d8">120</text>
+</svg></div>`;
 }
 
 function partyList(compact=false){
-return `<div class="parties ${compact?"compact":""}">${PARTIES.map((p,i)=>`<label class="party">${compact?"":`<span class="number">${i+1}</span>`}<span class="partyName"><strong>${p}</strong><small>אותיות: ${LETTERS[p]}</small></span>${compact?`<input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}">`:`<span class="step"><button type="button" data-action="minus" data-party="${p}">−</button><input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}"><button type="button" data-action="plus" data-party="${p}">+</button></span>`}</label>`).join("")}</div>`;
+return `<div class="parties ${compact?"compact":""}">${PARTIES.map((p,i)=>`
+<label class="party">
+${compact?"":`<span class="number">${i+1}</span>`}
+<span class="partyName"><strong>${p}</strong><small>אותיות: ${LETTERS[p]}</small></span>
+${compact
+?`<input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}">`
+:`<span class="step">
+<button type="button" data-action="minus" data-party="${p}">−</button>
+<input class="seatInput" data-party="${p}" inputmode="numeric" type="number" min="0" max="120" value="${state.seats[p]}">
+<button type="button" data-action="plus" data-party="${p}">+</button>
+</span>`}
+</label>`).join("")}</div>`;
 }
 
 function totalBox(){
@@ -110,7 +130,6 @@ const n=total();
 const box=document.getElementById("totalBox");
 const prediction=document.getElementById("predictionSubmit");
 const results=document.getElementById("resultsSave");
-
 if(box){
 box.classList.toggle("good",n===120);
 box.querySelector("strong").textContent=`${n} / 120`;
@@ -124,9 +143,35 @@ if(results)results.disabled=state.busy||n!==120;
 
 function render(){
 if(state.screen==="home"){
-app.innerHTML=`<section class="shell home"><div class="brand">${logo()}</div><section class="hero"><h1>מי באמת יודע לקרוא את המפה?</h1><p>כל אחד ממלא תחזית, וכל התחזיות נשארות חסויות עד לרגע החשיפה.</p><button class="primary" data-action="goCreate">פתיחת משחק חדש</button><div class="join"><input id="joinCode" value="${esc(state.code)}" placeholder="קוד חדר" maxlength="6"><button data-action="join">כניסה</button></div>${state.message?`<p class="error">${esc(state.message)}</p>`:""}</section><div class="features"><span>🔒 חסוי מהמארגן</span><span>✓ בדיוק 120</span><span>🏆 דירוג אוטומטי</span></div></section>`;
+app.innerHTML=`<section class="shell home">
+<div class="brand">${logo()}</div>
+<section class="hero">
+<h1>מי באמת יודע לקרוא את המפה?</h1>
+<p>כל אחד ממלא תחזית, וכל התחזיות נשארות חסויות עד לרגע החשיפה.</p>
+<button class="primary" data-action="goCreate">פתיחת משחק חדש</button>
+<div class="join">
+<input id="joinCode" value="${esc(state.code)}" placeholder="קוד חדר" maxlength="6">
+<button data-action="join">כניסה</button>
+</div>
+${state.message?`<p class="error">${esc(state.message)}</p>`:""}
+</section>
+<div class="features"><span>🔒 חסוי מהמארגן</span><span>✓ בדיוק 120</span><span>🏆 דירוג אוטומטי</span></div>
+</section>`;
 }else if(state.screen==="create"){
-app.innerHTML=`<section class="shell"><button class="back" data-action="home">→ חזרה</button><section class="panel"><small>יצירת חדר</small><h1>פותחים את הקלפי</h1><form id="createForm" class="stack"><label>שם המשחק<input name="title" value="תחזית הבחירות שלנו" maxlength="80" required></label><label>מועד אחרון להגשת תחזיות<input id="closeAt" name="closeAt" type="datetime-local" required></label><label>מועד חשיפת התחזיות והדירוג<input id="revealAt" name="revealAt" type="datetime-local" required></label><div class="notice">לאחר מועד ההגשה לא ניתן יהיה לשמור או לשנות תחזית. עד מועד החשיפה אף אחד — כולל המארגן — לא יוכל לצפות בתחזיות.</div><button class="primary" ${state.busy?"disabled":""}>${state.busy?"פותח חדר…":"יצירת חדר פרטי"}</button></form>${state.message?`<p class="error">${esc(state.message)}</p>`:""}</section></section>`;
+app.innerHTML=`<section class="shell">
+<button class="back" data-action="home">→ חזרה</button>
+<section class="panel">
+<small>יצירת חדר</small>
+<h1>פותחים את הקלפי</h1>
+<form id="createForm" class="stack">
+<label>שם המשחק<input name="title" value="תחזית הבחירות שלנו" maxlength="80" required></label>
+<label>מועד אחרון להגשת תחזיות<input id="closeAt" name="closeAt" type="datetime-local" required></label>
+<label>מועד חשיפת התחזיות והדירוג<input id="revealAt" name="revealAt" type="datetime-local" required></label>
+<div class="notice">לאחר מועד ההגשה לא ניתן יהיה לשמור או לשנות תחזית. עד מועד החשיפה אף אחד — כולל המארגן — לא יוכל לצפות בתחזיות.</div>
+<button class="primary" ${state.busy?"disabled":""}>${state.busy?"פותח חדר…":"יצירת חדר פרטי"}</button>
+</form>
+${state.message?`<p class="error">${esc(state.message)}</p>`:""}
+</section></section>`;
 }else if(state.screen==="loading"){
 app.innerHTML='<section class="shell loading">טוען את החדר…</section>';
 }else{
@@ -143,36 +188,130 @@ const ranked=r.results&&r.predictions
 ?[...r.predictions].map(x=>({...x,error:PARTIES.reduce((s,p)=>s+Math.pow((x.seats[p]||0)-(r.results[p]||0),2),0)})).sort((a,b)=>a.error-b.error)
 :[];
 
-const participantNames=(r.participants||r.predictions?.map(x=>x.name)||[]).slice().sort((a,b)=>a.localeCompare(b,"he"));
+const participantNames=(r.participants||r.predictions?.map(x=>x.name)||[])
+.slice()
+.sort((a,b)=>a.localeCompare(b,"he"));
 
-const participantPanel=`<details class="panel participants"><summary>מי כבר השתתף? (${r.count})</summary><div class="participantNames">${participantNames.length?participantNames.map(name=>`<span>${esc(name)}</span>`).join(""):'<small>עדיין לא נשלחו תחזיות</small>'}</div></details>`;
+const participantPanel=`<details class="panel participants">
+<summary>מי כבר השתתף? (${r.count})</summary>
+<div class="participantNames">
+${participantNames.length
+?participantNames.map(name=>`<span>${esc(name)}</span>`).join("")
+:'<small>עדיין לא נשלחו תחזיות</small>'}
+</div>
+</details>`;
 
 let body="";
 
 if(!r.revealed&&state.submitted){
-body=`<section class="panel"><h2>סיימת! התחזית נשמרה בכספת ✓</h2><p>התחזית שלך חסויה ותיחשף רק במועד שנקבע.</p>${!r.closed?'<button class="primary" data-action="editPrediction">עריכת התחזית</button>':""}</section>`;
+body=`<section class="panel">
+<h2>סיימת! התחזית נשמרה בכספת ✓</h2>
+<p>התחזית שלך חסויה ותיחשף רק במועד שנקבע.</p>
+${!r.closed?'<button class="primary" data-action="editPrediction">עריכת התחזית</button>':""}
+</section>`;
 }else if(!r.revealed&&!r.closed){
 const n=total();
-body=`<form id="predictionForm" class="panel prediction"><label class="nameField">השם שלך<input id="playerName" value="${esc(state.name)}" placeholder="איך תופיע בדירוג?" maxlength="40" required></label>${partyList()}${totalBox()}<button id="predictionSubmit" class="primary sticky" ${state.busy||n!==120?"disabled":""}>${n===120?"נעילת התחזית":`נותרו ${120-n} מנדטים`}</button></form>${state.admin?'<button class="adminResult" data-action="results">הזנת תוצאות האמת מראש</button>':""}`;
+body=`<form id="predictionForm" class="panel prediction">
+<label class="nameField">השם שלך
+<input id="playerName" value="${esc(state.name)}" placeholder="איך תופיע בדירוג?" maxlength="40" required>
+</label>
+${partyList()}
+${totalBox()}
+<button id="predictionSubmit" class="primary sticky" ${state.busy||n!==120?"disabled":""}>
+${n===120?"נעילת התחזית":`נותרו ${120-n} מנדטים`}
+</button>
+</form>`;
 }else if(!r.revealed){
-body=`<section class="panel"><h2>הגשת התחזיות הסתיימה</h2><p class="empty">התחזיות יישארו חסויות עד ${new Date(r.revealAt).toLocaleString("he-IL")}.</p>${state.admin?'<button class="primary" data-action="results">הזנת תוצאות האמת</button>':""}</section>`;
+body=`<section class="panel">
+<h2>הגשת התחזיות הסתיימה</h2>
+<p class="empty">התחזיות יישארו חסויות עד ${new Date(r.revealAt).toLocaleString("he-IL")}.</p>
+</section>`;
 }else if(r.results){
-body=`<section class="panel"><small>הציון הוא סכום ריבועי הסטיות — הנמוך ביותר מנצח</small><h2>לוח המנצחים</h2><div class="ranking">${ranked.length?ranked.map((x,i)=>`<div class="rank"><b class="place">${i+1}</b><strong>${esc(x.name)}</strong><span>${x.error} נק׳</span></div>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}</div><details><summary>השוואה מלאה</summary><div class="matrix">${PARTIES.map(p=>`<div><strong>${p}</strong><span>אמת: ${r.results[p]||0}</span>${ranked.map(x=>`<em>${esc(x.name)}: ${x.seats[p]||0}</em>`).join("")}</div>`).join("")}</div></details></section>`;
-body=body;
+body=`<section class="panel">
+<small>הציון הוא סכום ריבועי הסטיות — הנמוך ביותר מנצח</small>
+<h2>לוח המנצחים</h2>
+<div class="ranking">
+${ranked.length?ranked.map((x,i)=>`<div class="rank"><b class="place">${i+1}</b><strong>${esc(x.name)}</strong><span>${x.error} נק׳</span></div>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+</div>
+<details><summary>השוואה מלאה</summary>
+<div class="matrix">${PARTIES.map(p=>`<div><strong>${p}</strong><span>אמת: ${r.results[p]||0}</span>${ranked.map(x=>`<em>${esc(x.name)}: ${x.seats[p]||0}</em>`).join("")}</div>`).join("")}</div>
+</details></section>`;
 }else{
-body=`<section class="panel"><h2>כל התחזיות על השולחן</h2><div class="cards">${r.predictions?.length?r.predictions.map(x=>`<details><summary>${esc(x.name)}</summary>${PARTIES.map(p=>`<p><span>${p}</span><b>${x.seats[p]||0}</b></p>`).join("")}</details>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}</div>${state.admin?'<button class="primary" data-action="results">הזנת תוצאות האמת</button>':""}</section>`;
+body=`<section class="panel">
+<h2>כל התחזיות על השולחן</h2>
+<div class="cards">
+${r.predictions?.length?r.predictions.map(x=>`<details><summary>${esc(x.name)}</summary>${PARTIES.map(p=>`<p><span>${p}</span><b>${x.seats[p]||0}</b></p>`).join("")}</details>`).join(""):'<p class="empty">עדיין אין תחזיות בחדר</p>'}
+</div>
+</section>`;
 }
 
 const statusClass=r.revealed?"open":r.closed?"waiting":"sealed";
 const statusIcon=r.revealed?"✓":r.closed?"⏳":"⌁";
 const statusTitle=r.revealed?"התחזיות נחשפו":r.closed?"ההגשה נסגרה":"הכספת נעולה";
-const statusText=r.revealed?`${r.count} תחזיות במשחק`:r.closed?`החשיפה: ${new Date(r.revealAt).toLocaleString("he-IL")}`:`הגשה עד ${new Date(r.closeAt).toLocaleString("he-IL")} · חשיפה ${new Date(r.revealAt).toLocaleString("he-IL")}`;
+const statusText=r.revealed
+?`${r.count} תחזיות במשחק`
+:r.closed
+?`החשיפה: ${new Date(r.revealAt).toLocaleString("he-IL")}`
+:`הגשה עד ${new Date(r.closeAt).toLocaleString("he-IL")} · חשיפה ${new Date(r.revealAt).toLocaleString("he-IL")}`;
 
-app.innerHTML=`<section class="shell"><button class="back" data-action="home">→ חזרה למסך הראשי</button><header class="roomHead"><div><small>חדר ${esc(r.code)}</small><h1>${esc(r.title)}</h1></div><button class="share" data-action="share">שיתוף</button></header><section class="status ${statusClass}"><span class="icon">${statusIcon}</span><div><strong>${statusTitle}</strong><span>${statusText}</span></div></section>${participantPanel}${body}${state.message?`<div class="toast">${esc(state.message)}</div>`:""}${state.resultMode?`<div class="modal"><section class="panel"><button class="close" data-action="close">×</button><h2>תוצאות האמת</h2>${!r.revealed?'<div class="notice">התוצאות יישמרו, אך התחזיות והדירוג יישארו חסויים עד למועד שנקבע.</div>':""}${partyList(true)}${totalBox()}<button id="resultsSave" class="primary" data-action="saveResults" ${state.busy||total()!==120?"disabled":""}>שמירת התוצאות</button></section></div>`:""}</section>`;
+const organizerPanel=state.admin?`<section class="adminPanel">
+<h3>כלי המארגן</h3>
+<p>זהו קוד המארגן שלך. שמור אותו — בעזרתו אפשר לקבל הרשאת מארגן גם ממכשיר אחר.</p>
+<div class="adminCode"><code>${esc(state.admin)}</code><button type="button" data-action="copyAdmin">העתקה</button></div>
+<div class="adminActions">
+<button type="button" class="secondary" data-action="changeClose">שינוי מועד ההגשה</button>
+<button type="button" class="secondary" data-action="results">הזנת תוצאות האמת</button>
+</div>
+</section>`:`<button type="button" class="organizerLogin" data-action="adminLogin">כניסה כמארגן החדר</button>`;
+
+app.innerHTML=`<section class="shell">
+<button class="back" data-action="home">→ חזרה למסך הראשי</button>
+<header class="roomHead">
+<div><small>חדר ${esc(r.code)}</small><h1>${esc(r.title)}</h1></div>
+<button class="share" data-action="share">שיתוף</button>
+</header>
+<section class="status ${statusClass}">
+<span class="icon">${statusIcon}</span>
+<div><strong>${statusTitle}</strong><span>${statusText}</span></div>
+</section>
+${organizerPanel}
+${participantPanel}
+${body}
+${state.message?`<div class="toast">${esc(state.message)}</div>`:""}
+
+${state.resultMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="close">×</button>
+<h2>תוצאות האמת</h2>
+${!r.revealed?'<div class="notice">התוצאות יישמרו, אך התחזיות והדירוג יישארו חסויים עד למועד שנקבע.</div>':""}
+${partyList(true)}
+${totalBox()}
+<button id="resultsSave" class="primary" data-action="saveResults" ${state.busy||total()!==120?"disabled":""}>שמירת התוצאות</button>
+</section></div>`:""}
+
+${state.deadlineMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="closeDeadline">×</button>
+<h2>שינוי מועד ההגשה</h2>
+<div class="warning">שינוי המועד אינו מוחק ואינו משנה אף תחזית שכבר הוגשה.</div>
+<label>מועד אחרון חדש להגשת תחזיות
+<input id="newCloseAt" type="datetime-local" min="${localDateTimeValue(Date.now()+60000)}" max="${localDateTimeValue(Date.parse(r.revealAt)-60000)}" value="${localDateTimeValue(r.closeAt)}">
+</label>
+<p><small>מועד החשיפה נשאר: ${new Date(r.revealAt).toLocaleString("he-IL")}</small></p>
+<div class="modalActions"><button class="primary" data-action="saveCloseAt" ${state.busy?"disabled":""}>שמירת המועד החדש</button></div>
+</section></div>`:""}
+
+${state.adminMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="closeAdmin">×</button>
+<h2>כניסה כמארגן</h2>
+<p>הדבק את קוד המארגן שקיבלת כשפתחת את החדר.</p>
+<label>קוד מארגן<input id="adminTokenInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<div class="modalActions"><button class="primary" data-action="verifyAdmin" ${state.busy?"disabled":""}>אישור</button></div>
+</section></div>`:""}
+</section>`;
 }
 
 function bind(){
 app.querySelectorAll("[data-action]").forEach(el=>el.addEventListener("click",handleAction));
+
 app.querySelectorAll(".seatInput").forEach(el=>el.addEventListener("input",e=>{
 state.seats[e.target.dataset.party]=Math.max(0,Math.min(120,Number(e.target.value)||0));
 refreshTotals();
@@ -194,22 +333,18 @@ const close=document.getElementById("closeAt");
 const reveal=document.getElementById("revealAt");
 
 if(close&&reveal&&!close.value){
-const localValue=d=>{
-const x=new Date(d);
-x.setMinutes(x.getMinutes()-x.getTimezoneOffset());
-return x.toISOString().slice(0,16);
-};
 const now=Date.now();
-close.min=localValue(now+60000);
-close.value=localValue(now+86400000);
+close.min=localDateTimeValue(now+60000);
+close.value=localDateTimeValue(now+86400000);
 reveal.min=close.value;
-reveal.value=localValue(now+90000000);
+reveal.value=localDateTimeValue(now+90000000);
+
 close.addEventListener("change",()=>{
 reveal.min=close.value;
 if(reveal.value<=close.value){
 const d=new Date(close.value);
 d.setHours(d.getHours()+1);
-reveal.value=localValue(d);
+reveal.value=localDateTimeValue(d);
 }
 });
 }
@@ -220,23 +355,56 @@ const a=e.currentTarget.dataset.action;
 const p=e.currentTarget.dataset.party;
 
 if(a==="goCreate"){
-state.screen="create";state.message="";render();
+state.screen="create";
+state.message="";
+render();
 }else if(a==="home"){
-state.screen="home";state.room=null;state.resultMode=false;state.submitted=false;state.message="";
-history.replaceState({},"",location.pathname);render();
+state.screen="home";
+state.room=null;
+state.resultMode=false;
+state.deadlineMode=false;
+state.adminMode=false;
+state.submitted=false;
+state.message="";
+history.replaceState({},"",location.pathname);
+render();
 }else if(a==="join"){
 loadRoom(state.code);
 }else if(a==="editPrediction"){
-state.submitted=false;render();
+state.submitted=false;
+render();
 }else if(a==="plus"||a==="minus"){
 state.seats[p]=Math.max(0,state.seats[p]+(a==="plus"?1:-1));
 const input=e.currentTarget.closest(".party")?.querySelector(".seatInput");
 if(input)input.value=state.seats[p];
 refreshTotals();
 }else if(a==="results"){
-state.seats=blank();state.resultMode=true;render();
+state.seats=blank();
+state.resultMode=true;
+render();
 }else if(a==="close"){
-state.resultMode=false;render();
+state.resultMode=false;
+render();
+}else if(a==="changeClose"){
+state.deadlineMode=true;
+state.message="";
+render();
+}else if(a==="closeDeadline"){
+state.deadlineMode=false;
+render();
+}else if(a==="saveCloseAt"){
+saveCloseAt();
+}else if(a==="adminLogin"){
+state.adminMode=true;
+state.message="";
+render();
+}else if(a==="closeAdmin"){
+state.adminMode=false;
+render();
+}else if(a==="verifyAdmin"){
+verifyAdmin();
+}else if(a==="copyAdmin"){
+copyAdminCode();
 }else if(a==="saveResults"){
 saveResults();
 }else if(a==="share"){
@@ -244,15 +412,94 @@ shareRoom();
 }
 }
 
+async function verifyAdmin(){
+const input=document.getElementById("adminTokenInput");
+const adminToken=input?.value.trim()||"";
+
+if(!adminToken){
+state.message="יש להזין קוד מארגן";
+return render();
+}
+
+state.busy=true;
+render();
+
+try{
+await api(`/api/rooms/${state.code}/admin`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({adminToken})
+});
+
+state.admin=adminToken;
+localStorage.setItem(`ad120-admin-${state.code}`,adminToken);
+state.adminMode=false;
+state.message="זוהית כמארגן החדר";
+}catch(err){
+state.message=err.message;
+}finally{
+state.busy=false;
+render();
+}
+}
+
+async function saveCloseAt(){
+const input=document.getElementById("newCloseAt");
+const closeAt=Date.parse(input?.value||"");
+
+if(!Number.isFinite(closeAt)){
+state.message="יש לבחור מועד חדש";
+return render();
+}
+
+state.busy=true;
+render();
+
+try{
+await api(`/api/rooms/${state.code}/close-at`,{
+method:"PUT",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({
+adminToken:state.admin,
+closeAt:new Date(closeAt).toISOString()
+})
+});
+
+state.deadlineMode=false;
+await loadRoom(state.code,state.admin);
+state.message="מועד ההגשה עודכן. כל התחזיות הקיימות נשמרו.";
+render();
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function copyAdminCode(){
+try{
+await navigator.clipboard.writeText(state.admin);
+state.message="קוד המארגן הועתק";
+}catch{
+state.message="לא ניתן להעתיק אוטומטית — אפשר לסמן ולהעתיק את הקוד";
+}
+render();
+}
+
 async function api(path,options){
 const res=await fetch(API_BASE+path,options);
 const data=await res.json().catch(()=>({}));
-if(!res.ok)throw Error(data.error||"אירעה שגיאה");
+
+if(!res.ok){
+throw Error(data.error||"אירעה שגיאה");
+}
+
 return data;
 }
 
 async function createRoom(e){
 e.preventDefault();
+
 const f=new FormData(e.currentTarget);
 const title=f.get("title");
 const closeAt=Date.parse(String(f.get("closeAt")));
@@ -263,14 +510,21 @@ state.message="מועד החשיפה חייב להיות אחרי מועד סג�
 return render();
 }
 
-state.busy=true;state.message="";render();
+state.busy=true;
+state.message="";
+render();
 
 try{
 const d=await api("/api/rooms",{
 method:"POST",
 headers:{"content-type":"application/json"},
-body:JSON.stringify({title,closeAt:new Date(closeAt).toISOString(),revealAt:new Date(revealAt).toISOString()})
+body:JSON.stringify({
+title,
+closeAt:new Date(closeAt).toISOString(),
+revealAt:new Date(revealAt).toISOString()
+})
 });
+
 state.code=d.code;
 state.admin=d.adminToken;
 localStorage.setItem(`ad120-admin-${d.code}`,d.adminToken);
@@ -298,12 +552,17 @@ try{
 const c=code.trim().toUpperCase();
 const savedAdmin=localStorage.getItem(`ad120-admin-${c}`)||"";
 const d=await api(`/api/rooms/${encodeURIComponent(c)}`,{cache:"no-store"});
+
 state.code=c;
 state.admin=admin||savedAdmin;
 state.room=d;
 state.screen="room";
 state.message="";
-if(state.admin)localStorage.setItem(`ad120-admin-${c}`,state.admin);
+
+if(state.admin){
+localStorage.setItem(`ad120-admin-${c}`,state.admin);
+}
+
 history.replaceState({},"",`?room=${c}`);
 }catch(err){
 state.message=err.message;
@@ -316,7 +575,10 @@ render();
 
 async function savePrediction(e){
 e.preventDefault();
-if(total()!==120||!state.name.trim())return;
+
+if(total()!==120||!state.name.trim()){
+return;
+}
 
 state.busy=true;
 render();
@@ -324,11 +586,17 @@ render();
 try{
 const key=`ad120-${state.code}`;
 const editToken=localStorage.getItem(key)||undefined;
+
 const d=await api(`/api/rooms/${state.code}/predictions`,{
 method:"POST",
 headers:{"content-type":"application/json"},
-body:JSON.stringify({name:state.name,seats:state.seats,token:editToken})
+body:JSON.stringify({
+name:state.name,
+seats:state.seats,
+token:editToken
+})
 });
+
 localStorage.setItem(key,d.token);
 await loadRoom(state.code,state.admin);
 state.submitted=true;
@@ -342,7 +610,10 @@ render();
 }
 
 async function saveResults(){
-if(total()!==120)return;
+if(total()!==120){
+return;
+}
+
 state.busy=true;
 render();
 
@@ -350,8 +621,12 @@ try{
 await api(`/api/rooms/${state.code}/results`,{
 method:"POST",
 headers:{"content-type":"application/json"},
-body:JSON.stringify({adminToken:state.admin,seats:state.seats})
+body:JSON.stringify({
+adminToken:state.admin,
+seats:state.seats
+})
 });
+
 state.resultMode=false;
 state.message="תוצאות האמת נשמרו";
 await loadRoom(state.code,state.admin);
@@ -364,9 +639,13 @@ render();
 
 async function shareRoom(){
 const url=`${location.origin}${location.pathname}?room=${state.room.code}`;
+
 try{
 if(navigator.share){
-await navigator.share({title:state.room.title,url});
+await navigator.share({
+title:state.room.title,
+url
+});
 }else{
 await navigator.clipboard.writeText(url);
 state.message="הקישור הועתק";
@@ -381,18 +660,28 @@ const a=qs.get("admin")||"";
 
 if(c){
 state.code=c.toUpperCase();
-if(a)localStorage.setItem(`ad120-admin-${state.code}`,a);
+
+if(a){
+localStorage.setItem(`ad120-admin-${state.code}`,a);
+}
+
 loadRoom(state.code,a);
 }else{
 render();
 }
 
 setInterval(()=>{
-if(!state.room||state.resultMode)return;
+if(!state.room||state.resultMode){
+return;
+}
+
 const now=Date.now();
 const shouldClose=!state.room.closed&&now>=Date.parse(state.room.closeAt);
 const shouldReveal=!state.room.revealed&&now>=Date.parse(state.room.revealAt);
-if(shouldClose||shouldReveal)loadRoom(state.code,state.admin);
+
+if(shouldClose||shouldReveal){
+loadRoom(state.code,state.admin);
+}
 },5000);
 
 })();
