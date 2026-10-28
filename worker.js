@@ -954,6 +954,73 @@ async function saveResults(
   return json({ ok: true });
 }
 
+async function requireOrganizer(request, code, env) {
+  const body = await request.json();
+  const adminToken =
+    typeof body.adminToken === "string"
+      ? body.adminToken.trim()
+      : "";
+
+  if (!adminToken) {
+    return { error: json({ error: "יש להזין קוד מארגן" }, 400) };
+  }
+
+  const room = await env.DB.prepare(
+    "SELECT admin_hash FROM rooms WHERE code = ?"
+  )
+    .bind(code)
+    .first();
+
+  if (!room) {
+    return { error: json({ error: "החדר לא נמצא" }, 404) };
+  }
+
+  if (await hash(adminToken) !== room.admin_hash) {
+    return { error: json({ error: "אין הרשאת מנהל" }, 403) };
+  }
+
+  return { body };
+}
+
+async function listAdminPredictions(request, code, env) {
+  const auth = await requireOrganizer(request, code, env);
+  if (auth.error) return auth.error;
+
+  const rows = await env.DB.prepare(
+    `SELECT id, name, updated_at
+    FROM predictions
+    WHERE room_code = ?
+    ORDER BY updated_at DESC`
+  )
+    .bind(code)
+    .all();
+
+  return json({
+    predictions: rows.results.map(row => ({
+      id: row.id,
+      name: row.name,
+      updatedAt: new Date(row.updated_at).toISOString()
+    }))
+  });
+}
+
+async function deleteAdminPrediction(request, code, predictionId, env) {
+  const auth = await requireOrganizer(request, code, env);
+  if (auth.error) return auth.error;
+
+  const deleted = await env.DB.prepare(
+    "DELETE FROM predictions WHERE id = ? AND room_code = ?"
+  )
+    .bind(predictionId, code)
+    .run();
+
+  if (!deleted.meta?.changes) {
+    return json({ error: "התחזית לא נמצאה" }, 404);
+  }
+
+  return json({ ok: true });
+}
+
 async function handleApi(request, env) {
   if (!env.DB) {
     return json(
@@ -1066,6 +1133,37 @@ async function handleApi(request, env) {
 
   if (request.method === "POST" && syncMatch) {
     return syncOfficialResults(request, syncMatch[1].toUpperCase(), env);
+  }
+
+  const adminPredictionsMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/admin\/predictions$/
+  );
+
+  if (
+    request.method === "POST" &&
+    adminPredictionsMatch
+  ) {
+    return listAdminPredictions(
+      request,
+      adminPredictionsMatch[1].toUpperCase(),
+      env
+    );
+  }
+
+  const deletePredictionMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/admin\/predictions\/([0-9a-f-]+)$/
+  );
+
+  if (
+    request.method === "DELETE" &&
+    deletePredictionMatch
+  ) {
+    return deleteAdminPrediction(
+      request,
+      deletePredictionMatch[1].toUpperCase(),
+      deletePredictionMatch[2],
+      env
+    );
   }
 
   const resultsMatch = path.match(
