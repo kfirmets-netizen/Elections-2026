@@ -38,7 +38,6 @@ button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{
 </head>
 <body>
 <main id="app"></main>
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (()=>{
 "use strict";
@@ -743,9 +742,18 @@ render();
 async function readResultsImage(){
 const file=document.getElementById("resultsImage")?.files?.[0];
 if(!file){ state.message="יש לבחור צילום מסך או תמונה"; return render(); }
-if(!window.Tesseract){ state.message="מנוע קריאת התמונה טרם נטען. נסה שוב בעוד רגע."; return render(); }
-state.busy=true; state.message="קורא את התמונה — זה עשוי לקחת כמה שניות…"; render();
+state.busy=true; state.message="טוען מנוע קריאת תמונה…"; render();
 try{
+if(!window.Tesseract){
+await new Promise((resolve,reject)=>{
+const script=document.createElement("script");
+script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+script.onload=resolve;
+script.onerror=reject;
+document.head.appendChild(script);
+});
+}
+state.message="קורא את התמונה — זה עשוי לקחת כמה שניות…";
 const worker=await Tesseract.createWorker("heb+eng",1);
 const result=await worker.recognize(file);
 await worker.terminate();
