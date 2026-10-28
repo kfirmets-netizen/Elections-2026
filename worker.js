@@ -606,6 +606,105 @@ async function updateCloseAt(
   });
 }
 
+async function updateRevealAt(
+  request,
+  code,
+  env
+) {
+  const body = await request.json();
+
+  const adminToken =
+    typeof body.adminToken === "string"
+      ? body.adminToken.trim()
+      : "";
+
+  const revealAt =
+    Date.parse(body.revealAt || "");
+
+  if (
+    !adminToken ||
+    !Number.isFinite(revealAt)
+  ) {
+    return json(
+      {
+        error:
+          "יש להזין קוד מארגן ומועד חשיפה חדש"
+      },
+      400
+    );
+  }
+
+  const room = await env.DB.prepare(
+    `SELECT admin_hash, reveal_at
+    FROM rooms
+    WHERE code = ?`
+  )
+    .bind(code)
+    .first();
+
+  if (!room) {
+    return json(
+      { error: "החדר לא נמצא" },
+      404
+    );
+  }
+
+  if (
+    await hash(adminToken) !==
+    room.admin_hash
+  ) {
+    return json(
+      { error: "אין הרשאת מארגן" },
+      403
+    );
+  }
+
+  if (Date.now() >= room.reveal_at) {
+    return json(
+      { error: "התחזיות כבר נחשפו" },
+      400
+    );
+  }
+
+  if (revealAt <= Date.now()) {
+    return json(
+      {
+        error:
+          "מועד החשיפה החדש חייב להיות בעתיד"
+      },
+      400
+    );
+  }
+
+  if (revealAt >= room.reveal_at) {
+    return json(
+      {
+        error:
+          "אפשר רק להקדים את מועד החשיפה"
+      },
+      400
+    );
+  }
+
+  const closedAt = Date.now();
+
+  await env.DB.prepare(
+    `UPDATE rooms
+    SET
+      close_at = ?,
+      reveal_at = ?
+    WHERE code = ?`
+  )
+    .bind(closedAt, revealAt, code)
+    .run();
+
+  return json({
+    ok: true,
+    revealAt:
+      new Date(revealAt).toISOString()
+  });
+}
+
 async function saveResults(
   request,
   code,
@@ -735,6 +834,21 @@ async function handleApi(request, env) {
     return updateCloseAt(
       request,
       closeAtMatch[1].toUpperCase(),
+      env
+    );
+  }
+
+  const revealAtMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/reveal-at$/
+  );
+
+  if (
+    request.method === "PUT" &&
+    revealAtMatch
+  ) {
+    return updateRevealAt(
+      request,
+      revealAtMatch[1].toUpperCase(),
       env
     );
   }
