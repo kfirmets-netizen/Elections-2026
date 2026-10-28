@@ -260,7 +260,7 @@ const organizerPanel=state.admin?`<section class="adminPanel">
 <div class="adminCode"><code>${esc(state.admin)}</code><button type="button" data-action="copyAdmin">העתקה</button></div>
 <div class="adminActions">
 <button type="button" class="secondary" data-action="changeClose">שינוי מועד ההגשה</button>
-${!r.revealed?'<button type="button" class="secondary" data-action="changeReveal">הקדמת מועד החשיפה</button>':""}
+${!r.revealed?'<button type="button" class="secondary" data-action="revealNow">חשיפה מיידית ודירוג חי</button>':""}
 <button type="button" class="secondary" data-action="viewKfirPredictions">צפייה בתחזיות של כפיר</button>
 <button type="button" class="secondary" data-action="managePredictions">ניהול תחזיות שהוגשו</button>
 <button type="button" class="secondary" data-action="pasteResults">הדבקת תוצאות מטקסט</button>
@@ -477,6 +477,8 @@ state.revealMode=false;
 render();
 }else if(a==="saveRevealAt"){
 saveRevealAt();
+}else if(a==="revealNow"){
+revealNow();
 }else if(a==="saveCloseAt"){
 saveCloseAt();
 }else if(a==="adminLogin"){
@@ -555,6 +557,31 @@ closeAt:new Date(closeAt).toISOString()
 state.deadlineMode=false;
 await loadRoom(state.code,state.admin);
 state.message="מועד ההגשה עודכן. כל התחזיות הקיימות נשמרו.";
+render();
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function revealNow(){
+if(!confirm("לחשוף עכשיו את כל התחזיות ולסגור סופית את ההגשה? לאחר החשיפה אי אפשר להסתיר אותן שוב.")){
+return;
+}
+
+state.busy=true;
+render();
+
+try{
+await api(`/api/rooms/${state.code}/reveal-now`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({adminToken:state.admin})
+});
+
+await loadRoom(state.code,state.admin);
+state.message="התחזיות נחשפו. הדירוג יתעדכן בכל פעם שתשמור תוצאות אמת חדשות.";
 render();
 }catch(err){
 state.message=err.message;
