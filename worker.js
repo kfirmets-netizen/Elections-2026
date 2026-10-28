@@ -52,8 +52,10 @@ const OLD_NAMES = {
   "רע״ם - הרשימה הערבית המאוחדת": "רע״ם"
 };
 
-const OFFICIAL_RESULTS_URL =
-  "https://votes26.bechirot.gov.il/nationalresults?lang=he";
+const OFFICIAL_RESULTS_URLS = [
+  "https://votes26.bechirot.gov.il/nationalresults?lang=he",
+  "https://cdn-votes26.bechirot.gov.il/nationalresults?lang=he"
+];
 
 const OFFICIAL_BALLOT_MAP = {
   "בקר": "אורות השחר מפלגה של כולם", "פה": "אני ואתה מפלגת העם הישראלית",
@@ -295,26 +297,45 @@ function calculateSeatsFromVotes(votes, totalVotes) {
 }
 
 async function fetchOfficialResults() {
-  const response = await fetch(OFFICIAL_RESULTS_URL, { headers: { accept: "text/html,application/xhtml+xml" } });
-  if (!response.ok) throw new Error("אתר ועדת הבחירות אינו זמין כרגע");
+  let lastError;
 
-  const html = await response.text();
-  const { votes, totalVotes, matchedRows } = parseOfficialVotes(html);
-  const { seats, eligible } = calculateSeatsFromVotes(votes, totalVotes);
-  const importedAt = Date.now();
+  for (const url of OFFICIAL_RESULTS_URLS) {
+    try {
+      const response = await fetch(url, {
+        headers: { accept: "text/html,application/xhtml+xml" }
+      });
 
-  return {
-    seats,
-    source: {
-      provider: "central-election-committee",
-      label: "ועדת הבחירות המרכזית",
-      url: OFFICIAL_RESULTS_URL,
-      importedAt,
-      totalVotes,
-      matchedRows,
-      eligibleCount: eligible.length
+      if (!response.ok) {
+        throw new Error(
+          `אתר ועדת הבחירות החזיר שגיאה ${response.status}`
+        );
+      }
+
+      const html = await response.text();
+      const { votes, totalVotes, matchedRows } = parseOfficialVotes(html);
+      const { seats, eligible } = calculateSeatsFromVotes(votes, totalVotes);
+      const importedAt = Date.now();
+
+      return {
+        seats,
+        source: {
+          provider: "central-election-committee",
+          label: "ועדת הבחירות המרכזית",
+          url,
+          importedAt,
+          totalVotes,
+          matchedRows,
+          eligibleCount: eligible.length
+        }
+      };
+    } catch (error) {
+      lastError = error;
     }
-  };
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("אתר ועדת הבחירות אינו זמין כרגע");
 }
 
 function unpackResults(resultsJson) {
