@@ -38,6 +38,7 @@ button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{
 </head>
 <body>
 <main id="app"></main>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script>
 (()=>{
 "use strict";
@@ -287,8 +288,13 @@ ${state.pasteMode?`<div class="modal"><section class="panel">
 <button class="close" data-action="closePaste">×</button>
 <h2>הדבקת תוצאות</h2>
 <p class="empty">הדבק כאן טקסט שמכיל שמות מפלגות ומספרי מנדטים, למשל מטבלת תוצאות ב־ynet או בגלובס. האתר ימלא את השדות עבורך לבדיקה.</p>
+<label>צילום מסך של תוצאות
+<input id="resultsImage" type="file" accept="image/*" capture="environment">
+</label>
+<div class="modalActions"><button class="secondary" data-action="readResultsImage">קריאת תמונה ומילוי</button></div>
+<p class="empty">או הדבק טקסט:</p>
 <label>טקסט התוצאות
-<textarea id="pastedResults" rows="10" placeholder="הליכוד 27&#10;ישר 22&#10;ביחד 12&#10;..."></textarea>
+<textarea id="pastedResults" rows="8" placeholder="הליכוד 27&#10;ישר 22&#10;ביחד 12&#10;..."></textarea>
 </label>
 <div class="modalActions"><button class="primary" data-action="parsePastedResults">פענוח ומילוי התוצאות</button></div>
 </section></div>`:""}
@@ -417,6 +423,8 @@ state.pasteMode=false;
 render();
 }else if(a==="parsePastedResults"){
 parsePastedResults();
+}else if(a==="readResultsImage"){
+readResultsImage();
 }else if(a==="close"){
 state.resultMode=false;
 render();
@@ -692,8 +700,8 @@ function normalizePastedText(value){
 return String(value||"").toLowerCase().replace(/[״"]/g,"").replace(/[׳']/g,"").replace(/[־–—-]/g," ").replace(/\s+/g," ").trim();
 }
 
-function parsePastedResults(){
-const raw=document.getElementById("pastedResults")?.value||"";
+function parsePastedResults(rawOverride){
+const raw=rawOverride??document.getElementById("pastedResults")?.value||"";
 if(!raw.trim()){ state.message="יש להדביק טקסט תוצאות"; return render(); }
 const aliases=[
 ["הליכוד","הליכוד עם בנימין נתניהו לראשות הממשלה"],
@@ -731,6 +739,23 @@ if(!Object.keys(found).length){ state.message="לא נמצאו בטקסט שמו
 state.seats={...blank(),...found}; state.pasteMode=false; state.resultMode=true;
 state.message=sum===120 ? "נמצאו "+Object.keys(found).length+" רשימות והסכום הוא 120. בדוק ושמור." : "נמצאו "+Object.keys(found).length+" רשימות, אך הסכום הוא "+sum+" ולא 120. השלם או תקן לפני שמירה.";
 render();
+}
+async function readResultsImage(){
+const file=document.getElementById("resultsImage")?.files?.[0];
+if(!file){ state.message="יש לבחור צילום מסך או תמונה"; return render(); }
+if(!window.Tesseract){ state.message="מנוע קריאת התמונה טרם נטען. נסה שוב בעוד רגע."; return render(); }
+state.busy=true; state.message="קורא את התמונה — זה עשוי לקחת כמה שניות…"; render();
+try{
+const worker=await Tesseract.createWorker("heb+eng",1);
+const result=await worker.recognize(file);
+await worker.terminate();
+state.busy=false;
+parsePastedResults(result.data.text);
+}catch(err){
+state.busy=false;
+state.message="לא הצלחתי לקרוא את התמונה. נסה צילום מסך חד יותר או הדבק טקסט.";
+render();
+}
 }
 async function importOfficialResults(){
 state.busy=true;
