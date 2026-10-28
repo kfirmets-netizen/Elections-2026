@@ -1004,6 +1004,32 @@ async function listAdminPredictions(request, code, env) {
   });
 }
 
+async function listKfirPredictions(request, code, env) {
+  const auth = await requireOrganizer(request, code, env);
+  if (auth.error) return auth.error;
+
+  const rows = await env.DB.prepare(
+    `SELECT name, ciphertext, iv, updated_at
+    FROM predictions
+    WHERE room_code = ? AND name = ?
+    ORDER BY updated_at DESC`
+  )
+    .bind(code, "כפיר")
+    .all();
+
+  const predictions = await Promise.all(
+    rows.results.map(async row => ({
+      name: row.name,
+      seats: normalizeSeats(
+        await unseal(row.ciphertext, row.iv, env)
+      ),
+      submittedAt: new Date(row.updated_at).toISOString()
+    }))
+  );
+
+  return json({ predictions });
+}
+
 async function deleteAdminPrediction(request, code, predictionId, env) {
   const auth = await requireOrganizer(request, code, env);
   if (auth.error) return auth.error;
@@ -1146,6 +1172,21 @@ async function handleApi(request, env) {
     return listAdminPredictions(
       request,
       adminPredictionsMatch[1].toUpperCase(),
+      env
+    );
+  }
+
+  const kfirPredictionsMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/admin\/kfir-predictions$/
+  );
+
+  if (
+    request.method === "POST" &&
+    kfirPredictionsMatch
+  ) {
+    return listKfirPredictions(
+      request,
+      kfirPredictionsMatch[1].toUpperCase(),
       env
     );
   }
