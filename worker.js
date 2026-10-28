@@ -1095,11 +1095,16 @@ export default {
         "אין עדיין מספיק נתונים לחישוב מנדטים"
       ];
 
+      const isOfficialImport =
+        new URL(request.url).pathname.includes("official-results");
+
       return json(
         {
-          error: importErrors.includes(message)
-            ? message
-            : "אירעה שגיאה. נסו שוב בעוד רגע"
+          error: isOfficialImport && message
+            ? `ייבוא התוצאות נכשל: ${message}`
+            : importErrors.includes(message)
+              ? message
+              : "אירעה שגיאה. נסו שוב בעוד רגע"
         },
         500
       );
