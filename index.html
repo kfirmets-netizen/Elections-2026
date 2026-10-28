@@ -701,7 +701,7 @@ return String(value||"").toLowerCase().replace(/[״"]/g,"").replace(/[׳']/g,"")
 }
 
 function parsePastedResults(rawOverride){
-const raw=rawOverride??document.getElementById("pastedResults")?.value||"";
+const raw=rawOverride ?? (document.getElementById("pastedResults")?.value||"");
 if(!raw.trim()){ state.message="יש להדביק טקסט תוצאות"; return render(); }
 const aliases=[
 ["הליכוד","הליכוד עם בנימין נתניהו לראשות הממשלה"],
