@@ -772,6 +772,36 @@ async function updateCloseAt(
   });
 }
 
+async function revealNow(request, code, env) {
+  const auth = await requireOrganizer(request, code, env);
+  if (auth.error) return auth.error;
+
+  const room = await env.DB.prepare(
+    "SELECT reveal_at FROM rooms WHERE code = ?"
+  )
+    .bind(code)
+    .first();
+
+  if (Date.now() >= room.reveal_at) {
+    return json({ error: "התחזיות כבר נחשפו" }, 400);
+  }
+
+  const now = Date.now();
+
+  await env.DB.prepare(
+    `UPDATE rooms
+    SET close_at = ?, reveal_at = ?
+    WHERE code = ?`
+  )
+    .bind(now, now, code)
+    .run();
+
+  return json({
+    ok: true,
+    revealAt: new Date(now).toISOString()
+  });
+}
+
 async function updateRevealAt(
   request,
   code,
@@ -1126,6 +1156,21 @@ async function handleApi(request, env) {
     return updateCloseAt(
       request,
       closeAtMatch[1].toUpperCase(),
+      env
+    );
+  }
+
+  const revealNowMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/reveal-now$/
+  );
+
+  if (
+    request.method === "POST" &&
+    revealNowMatch
+  ) {
+    return revealNow(
+      request,
+      revealNowMatch[1].toUpperCase(),
       env
     );
   }
