@@ -261,6 +261,7 @@ const organizerPanel=state.admin?`<section class="adminPanel">
 <div class="adminActions">
 <button type="button" class="secondary" data-action="changeClose">שינוי מועד ההגשה</button>
 ${!r.revealed?'<button type="button" class="secondary" data-action="changeReveal">הקדמת מועד החשיפה</button>':""}
+<button type="button" class="secondary" data-action="importOfficial">ייבוא תוצאות מוועדת הבחירות</button>
 <button type="button" class="secondary" data-action="results">הזנת תוצאות האמת</button>
 </div>
 </section>`:`<button type="button" class="organizerLogin" data-action="adminLogin">כניסה כמארגן החדר</button>`;
@@ -277,6 +278,7 @@ app.innerHTML=`<section class="shell">
 </section>
 ${organizerPanel}
 ${participantPanel}
+${r.source?`<div class="notice">תוצאות מוועדת הבחירות המרכזית · עדכון אחרון ${new Date(r.source.importedAt).toLocaleString("he-IL")}</div>`:""}
 ${body}
 ${state.message?`<div class="toast">${esc(state.message)}</div>`:""}
 
@@ -426,6 +428,8 @@ render();
 verifyAdmin();
 }else if(a==="copyAdmin"){
 copyAdminCode();
+}else if(a==="importOfficial"){
+importOfficialResults();
 }else if(a==="saveResults"){
 saveResults();
 }else if(a==="share"){
@@ -663,6 +667,42 @@ render();
 }
 }
 
+async function importOfficialResults(){
+state.busy=true;
+state.message="מייבא תוצאות מוועדת הבחירות…";
+render();
+
+try{
+await api(`/api/rooms/${state.code}/import-official-results`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({adminToken:state.admin})
+});
+
+await loadRoom(state.code,state.admin);
+state.message="התוצאות יובאו. האתר יעדכן אותן אוטומטית במהלך הספירה.";
+render();
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function syncOfficialResults(){
+try{
+const data=await api(`/api/rooms/${state.code}/sync-official-results`,{
+method:"POST"
+});
+
+if(data.updated){
+await loadRoom(state.code,state.admin);
+}
+}catch(err){
+console.warn("Official-results sync failed",err);
+}
+}
+
 async function saveResults(){
 if(total()!==120){
 return;
@@ -737,6 +777,12 @@ if(shouldClose||shouldReveal){
 loadRoom(state.code,state.admin);
 }
 },5000);
+
+setInterval(()=>{
+if(state.room?.revealed&&state.room?.source?.provider==="central-election-committee"){
+syncOfficialResults();
+}
+},180000);
 
 })();
 </script>
