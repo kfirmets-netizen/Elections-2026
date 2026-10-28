@@ -26,7 +26,7 @@ button,input{font:inherit}button{border:0;font-weight:800;cursor:pointer}.shell{
 .step{display:grid;grid-template-columns:35px 42px 35px;direction:ltr;border:1px solid var(--line);border-radius:11px;overflow:hidden}.step button{background:#f5f7fa;font-size:20px}.step input{border:0;border-radius:0;text-align:center;padding:8px 0;width:42px;font-weight:900;background:#fff}
 .total{position:sticky;bottom:79px;display:flex;justify-content:space-between;margin:14px 0 9px;padding:13px 16px;background:#fff3f0;color:var(--bad);border-radius:13px;border:1px solid #ffd4cc;z-index:2}.total.good{background:#e9f9ef;color:var(--good);border-color:#b9e7c8}
 .sticky{position:sticky;bottom:14px;z-index:2}
-.adminPanel{margin:14px 0;padding:16px;background:#eef3ff;border:1px solid #cfdbff;border-radius:18px}.adminPanel h3{margin:0 0 8px}.adminPanel p{margin:7px 0;color:#46566d;font-size:13px}.adminCode{display:grid;grid-template-columns:1fr auto;gap:8px;direction:ltr;margin:12px 0}.adminCode code{overflow:auto;white-space:nowrap;padding:12px;background:#fff;border:1px solid var(--line);border-radius:11px;font-size:12px}.adminCode button,.secondary{padding:11px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#26344b}.adminActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.organizerLogin{width:100%;margin:12px 0;padding:11px;background:transparent;color:#536071;text-decoration:underline}.warning{background:#fff7db;color:#755600;border:1px solid #f0d97e;padding:12px;border-radius:12px;font-size:13px}.modal label{margin:14px 0}.modalActions{display:grid;gap:8px;margin-top:14px}
+.adminPanel{margin:14px 0;padding:16px;background:#eef3ff;border:1px solid #cfdbff;border-radius:18px}.adminPanel h3{margin:0 0 8px}.adminPanel p{margin:7px 0;color:#46566d;font-size:13px}.adminCode{display:grid;grid-template-columns:1fr auto;gap:8px;direction:ltr;margin:12px 0}.adminCode code{overflow:auto;white-space:nowrap;padding:12px;background:#fff;border:1px solid var(--line);border-radius:11px;font-size:12px}.adminCode button,.secondary{padding:11px 14px;border:1px solid var(--line);border-radius:11px;background:#fff;color:#26344b}.adminActions{display:grid;grid-template-columns:1fr;gap:8px}.organizerLogin{width:100%;margin:12px 0;padding:11px;background:transparent;color:#536071;text-decoration:underline}.warning{background:#fff7db;color:#755600;border:1px solid #f0d97e;padding:12px;border-radius:12px;font-size:13px}.modal label{margin:14px 0}.modalActions{display:grid;gap:8px;margin-top:14px}
 .toast{position:fixed;z-index:30;bottom:18px;left:18px;right:18px;max-width:564px;margin:auto;background:var(--ink);color:#fff;padding:14px;border-radius:14px;text-align:center}
 .cards,.ranking{display:grid;gap:10px;margin:18px 0}.cards details,.rank{border:1px solid var(--line);border-radius:15px;padding:14px}.cards summary{font-weight:900;cursor:pointer}.cards p{display:flex;justify-content:space-between;margin:10px 0;color:var(--muted)}
 .rank{display:grid;grid-template-columns:38px 1fr auto;align-items:center}.rank .place{width:32px;height:32px;border-radius:50%;background:#fff1be;color:#855d00;display:grid;place-items:center}.rank span{font-size:13px;color:#64748b}
@@ -86,7 +86,7 @@ const PARTY_LISTS=[
 const PARTIES=PARTY_LISTS.map(x=>x.name);
 const LETTERS=Object.fromEntries(PARTY_LISTS.map(x=>[x.name,x.letters]));
 const API_BASE=(window.ELECTIONS_API_BASE||"").replace(/\/$/,"");
-const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,deadlineMode:false,adminMode:false,submitted:false};
+const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,deadlineMode:false,revealMode:false,adminMode:false,submitted:false};
 const app=document.getElementById("app");
 
 function blank(){return Object.fromEntries(PARTIES.map(p=>[p,0]))}
@@ -260,6 +260,7 @@ const organizerPanel=state.admin?`<section class="adminPanel">
 <div class="adminCode"><code>${esc(state.admin)}</code><button type="button" data-action="copyAdmin">העתקה</button></div>
 <div class="adminActions">
 <button type="button" class="secondary" data-action="changeClose">שינוי מועד ההגשה</button>
+${!r.revealed?'<button type="button" class="secondary" data-action="changeReveal">הקדמת מועד החשיפה</button>':""}
 <button type="button" class="secondary" data-action="results">הזנת תוצאות האמת</button>
 </div>
 </section>`:`<button type="button" class="organizerLogin" data-action="adminLogin">כניסה כמארגן החדר</button>`;
@@ -297,6 +298,16 @@ ${state.deadlineMode?`<div class="modal"><section class="panel">
 </label>
 <p><small>מועד החשיפה נשאר: ${new Date(r.revealAt).toLocaleString("he-IL")}</small></p>
 <div class="modalActions"><button class="primary" data-action="saveCloseAt" ${state.busy?"disabled":""}>שמירת המועד החדש</button></div>
+</section></div>`:""}
+
+${state.revealMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="closeReveal">×</button>
+<h2>הקדמת מועד החשיפה</h2>
+<div class="warning">ההגשה תיסגר מיד. במועד שתבחר, כל התחזיות והדירוג ייחשפו — ואי אפשר יהיה להסתיר אותן שוב.</div>
+<label>מועד חשיפה חדש
+<input id="newRevealAt" type="datetime-local" min="${localDateTimeValue(Date.now()+60000)}" max="${localDateTimeValue(Date.parse(r.revealAt)-60000)}" value="${localDateTimeValue(r.revealAt)}">
+</label>
+<div class="modalActions"><button class="primary" data-action="saveRevealAt" ${state.busy?"disabled":""}>סגירת ההגשה והקדמת החשיפה</button></div>
 </section></div>`:""}
 
 ${state.adminMode?`<div class="modal"><section class="panel">
@@ -363,6 +374,7 @@ state.screen="home";
 state.room=null;
 state.resultMode=false;
 state.deadlineMode=false;
+state.revealMode=false;
 state.adminMode=false;
 state.submitted=false;
 state.message="";
@@ -392,6 +404,15 @@ render();
 }else if(a==="closeDeadline"){
 state.deadlineMode=false;
 render();
+}else if(a==="changeReveal"){
+state.revealMode=true;
+state.message="";
+render();
+}else if(a==="closeReveal"){
+state.revealMode=false;
+render();
+}else if(a==="saveRevealAt"){
+saveRevealAt();
 }else if(a==="saveCloseAt"){
 saveCloseAt();
 }else if(a==="adminLogin"){
@@ -468,6 +489,39 @@ closeAt:new Date(closeAt).toISOString()
 state.deadlineMode=false;
 await loadRoom(state.code,state.admin);
 state.message="מועד ההגשה עודכן. כל התחזיות הקיימות נשמרו.";
+render();
+}catch(err){
+state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function saveRevealAt(){
+const input=document.getElementById("newRevealAt");
+const revealAt=Date.parse(input?.value||"");
+
+if(!Number.isFinite(revealAt)){
+state.message="יש לבחור מועד חשיפה חדש";
+return render();
+}
+
+state.busy=true;
+render();
+
+try{
+await api(`/api/rooms/${state.code}/reveal-at`,{
+method:"PUT",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({
+adminToken:state.admin,
+revealAt:new Date(revealAt).toISOString()
+})
+});
+
+state.revealMode=false;
+await loadRoom(state.code,state.admin);
+state.message="ההגשה נסגרה. התחזיות ייחשפו במועד החדש שבחרת.";
 render();
 }catch(err){
 state.message=err.message;
