@@ -52,6 +52,41 @@ const OLD_NAMES = {
   "רע״ם - הרשימה הערבית המאוחדת": "רע״ם"
 };
 
+const OFFICIAL_RESULTS_URL =
+  "https://votes26.bechirot.gov.il/nationalresults?lang=he";
+
+const OFFICIAL_BALLOT_MAP = {
+  "בקר": "אורות השחר מפלגה של כולם", "פה": "אני ואתה מפלגת העם הישראלית",
+  "ז": "בטח", "רק": "ביחד בראשות נפתלי בנט",
+  "בד": "ביחד נצליח - רשימה משותפת ערבית יהודית", "נץ": "ביטחון אישי",
+  "זץ": "ברית עולם לגאולת ישראל", "יק": "גח״ת-גוש התנ״כי",
+  "ה": "גן עדן בראשות ישוע ישראל בן דוד", "אמת": "הדמוקרטים בראשות יאיר גולן",
+  "רץ": "הקהל - מפלגה כלל חרדית שנציגיה נבחרים על ידי הציבור בראשות הרב שלמה אלבוים",
+  "די": "המילואימניקים והכלכלית בראשות יועז הנדל וירון זליכה",
+  "זך": "הציבור החרדי בראשות מוטי ליטנר",
+  "ט": "הציונות הדתית בראשות בצלאל סמוטריץ׳ יהדות בראשות משה פייגלין",
+  "ודם": "הרשימה המשותפת", "ד": "השותפות לכולם",
+  "שס": "התאחדות הספרדים שומרי תורה תנועתו של מרן הרב עובדיה יוסף זצ״ל",
+  "נקי": "התיקון לשיטת הבחירות והממשל", "צף": "הפיראטים – צפים לטוב",
+  "ג": "יהדות התורה והשבת אגודת ישראל - דגל התורה",
+  "ל": "ישראל ביתנו בראשות אביגדור ליברמן", "י": "ישראל תחילה - בראשות שרן השכל",
+  "דרך": "ישר! עם איזנקוט לראשות הממשלה מאחדים את ישראל", "כן": "כחול לבן",
+  "מחל": "הליכוד עם בנימין נתניהו לראשות הממשלה", "קץ": "משפט צדק",
+  "ק": "מפלגת תקומה", "ני": "נעם לישראל", "קך": "סדר חדש",
+  "ב": "עוצמה יהודית", "ך": "עמך ישראל", "נר": "צבע שחור - מגן עולם התורה",
+  "בי": "צומת בית ישראל", "קה": "קול הנשים",
+  "עם": "רע״ם - הרשימה הערבית המאוחדת", "נף": "שמע בראשות נפתלי גולדמן",
+  "צדק": "שרשר לאהבה ואחדות העם", "צבי": "תנועת אחי תנועתו של הרב יורם אברג׳ל זצ״ל"
+};
+
+const SURPLUS_AGREEMENTS = [
+  ["הליכוד עם בנימין נתניהו לראשות הממשלה", "הציונות הדתית בראשות בצלאל סמוטריץ׳ יהדות בראשות משה פייגלין"],
+  ["התאחדות הספרדים שומרי תורה תנועתו של מרן הרב עובדיה יוסף זצ״ל", "יהדות התורה והשבת אגודת ישראל - דגל התורה"],
+  ["ישר! עם איזנקוט לראשות הממשלה מאחדים את ישראל", "הדמוקרטים בראשות יאיר גולן"],
+  ["ביחד בראשות נפתלי בנט", "ישראל ביתנו בראשות אביגדור ליברמן"],
+  ["הרשימה המשותפת", "רע״ם - הרשימה הערבית המאוחדת"]
+];
+
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
@@ -180,6 +215,117 @@ function validSeats(value) {
   );
 }
 
+function normalizeBallot(value) {
+  return String(value || "").replace(/[״׳"'\`]/g, "").replace(/[\s\-–—]/g, "").trim();
+}
+
+function textFromHtml(value) {
+  return String(value || "").replace(/<br\s*\/?\s*>/gi, " ").replace(/<[^>]*>/g, " ").replace(/&nbsp;/gi, " ").replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&amp;/gi, "&").replace(/\s+/g, " ").trim();
+}
+
+function numericCell(value) {
+  const plain = textFromHtml(value).replace(/[٠-٩]/g, digit => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))).replace(/[۰-۹]/g, digit => String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit)));
+  if (!/^[-+%\d,\.\s]+$/.test(plain)) return null;
+  const digits = plain.replace(/\D/g, "");
+  return digits ? Number(digits) : null;
+}
+
+function parseOfficialVotes(html) {
+  const votes = Object.fromEntries(PARTIES.map(party => [party, 0]));
+  let matchedRows = 0;
+  let totalVotes = 0;
+
+  for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = Array.from(rowMatch[1].matchAll(/<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi)).map(match => match[1]);
+    if (!cells.length) continue;
+
+    const party = cells.map(textFromHtml).map(normalizeBallot).map(ballot => OFFICIAL_BALLOT_MAP[ballot]).find(Boolean);
+    if (!party) continue;
+
+    const rowVotes = Math.max(0, ...cells.map(numericCell).filter(Number.isFinite));
+    if (!rowVotes) continue;
+
+    votes[party] = rowVotes;
+    totalVotes += rowVotes;
+    matchedRows++;
+  }
+
+  if (matchedRows < 20 || totalVotes < 100000) {
+    throw new Error("לא נמצאו נתוני תוצאות תקינים באתר ועדת הבחירות");
+  }
+
+  return { votes, totalVotes, matchedRows };
+}
+
+function calculateSeatsFromVotes(votes, totalVotes) {
+  const seats = Object.fromEntries(PARTIES.map(party => [party, 0]));
+  const threshold = totalVotes * 0.0325;
+  const eligible = PARTIES.filter(party => votes[party] >= threshold);
+
+  if (!eligible.length) throw new Error("אין עדיין מספיק נתונים לחישוב מנדטים");
+
+  const eligibleVotes = eligible.reduce((sum, party) => sum + votes[party], 0);
+  const quota = eligibleVotes / 120;
+  for (const party of eligible) seats[party] = Math.floor(votes[party] / quota);
+
+  const groups = [];
+  const grouped = new Set();
+  for (const agreement of SURPLUS_AGREEMENTS) {
+    if (agreement.every(party => eligible.includes(party))) {
+      groups.push(agreement);
+      agreement.forEach(party => grouped.add(party));
+    }
+  }
+  for (const party of eligible) if (!grouped.has(party)) groups.push([party]);
+
+  while (Object.values(seats).reduce((sum, value) => sum + value, 0) < 120) {
+    const winningGroup = [...groups].sort((left, right) => {
+      const leftVotes = left.reduce((sum, party) => sum + votes[party], 0);
+      const rightVotes = right.reduce((sum, party) => sum + votes[party], 0);
+      const leftSeats = left.reduce((sum, party) => sum + seats[party], 0);
+      const rightSeats = right.reduce((sum, party) => sum + seats[party], 0);
+      return (rightVotes / (rightSeats + 1)) - (leftVotes / (leftSeats + 1));
+    })[0];
+
+    const winningParty = [...winningGroup].sort((left, right) => (votes[right] / (seats[right] + 1)) - (votes[left] / (seats[left] + 1)))[0];
+    seats[winningParty]++;
+  }
+
+  return { seats, eligible };
+}
+
+async function fetchOfficialResults() {
+  const response = await fetch(OFFICIAL_RESULTS_URL, { headers: { accept: "text/html,application/xhtml+xml" } });
+  if (!response.ok) throw new Error("אתר ועדת הבחירות אינו זמין כרגע");
+
+  const html = await response.text();
+  const { votes, totalVotes, matchedRows } = parseOfficialVotes(html);
+  const { seats, eligible } = calculateSeatsFromVotes(votes, totalVotes);
+  const importedAt = Date.now();
+
+  return {
+    seats,
+    source: {
+      provider: "central-election-committee",
+      label: "ועדת הבחירות המרכזית",
+      url: OFFICIAL_RESULTS_URL,
+      importedAt,
+      totalVotes,
+      matchedRows,
+      eligibleCount: eligible.length
+    }
+  };
+}
+
+function unpackResults(resultsJson) {
+  if (!resultsJson) return { seats: null, source: null };
+  const parsed = JSON.parse(resultsJson);
+  if (parsed && parsed.seats && parsed.source) {
+    return { seats: normalizeSeats(parsed.seats), source: parsed.source };
+  }
+  return { seats: normalizeSeats(parsed), source: null };
+}
+
 async function createRoom(request, env) {
   const body = await request.json();
 
@@ -294,6 +440,8 @@ async function getRoom(code, env) {
   const revealed =
     Date.now() >= room.reveal_at;
 
+  const savedResults = unpackResults(room.results_json);
+
   const base = {
     code: room.code,
     title: room.title,
@@ -302,7 +450,8 @@ async function getRoom(code, env) {
     closed: Date.now() >= closeAt,
     revealed,
     count: rows.results.length,
-    participants: rows.results.map(row => row.name)
+    participants: rows.results.map(row => row.name),
+    source: savedResults.source
   };
 
   if (!revealed) {
@@ -328,11 +477,7 @@ async function getRoom(code, env) {
   return json({
     ...base,
     predictions,
-    results: room.results_json
-      ? normalizeSeats(
-          JSON.parse(room.results_json)
-        )
-      : null
+    results: savedResults.seats
   });
 }
 
@@ -705,6 +850,39 @@ async function updateRevealAt(
   });
 }
 
+async function importOfficialResults(request, code, env) {
+  const body = await request.json();
+  const adminToken = typeof body.adminToken === "string" ? body.adminToken.trim() : "";
+  if (!adminToken) return json({ error: "יש להזין קוד מארגן" }, 400);
+
+  const room = await env.DB.prepare("SELECT admin_hash FROM rooms WHERE code = ?").bind(code).first();
+  if (!room) return json({ error: "החדר לא נמצא" }, 404);
+  if (await hash(adminToken) !== room.admin_hash) return json({ error: "אין הרשאת מארגן" }, 403);
+
+  const imported = await fetchOfficialResults();
+  await env.DB.prepare("UPDATE rooms SET results_json = ? WHERE code = ?").bind(JSON.stringify(imported), code).run();
+  return json({ ok: true, ...imported });
+}
+
+async function syncOfficialResults(code, env) {
+  const room = await env.DB.prepare("SELECT reveal_at, results_json FROM rooms WHERE code = ?").bind(code).first();
+  if (!room) return json({ error: "החדר לא נמצא" }, 404);
+  if (Date.now() < room.reveal_at) return json({ error: "התחזיות טרם נחשפו" }, 403);
+
+  const saved = unpackResults(room.results_json);
+  if (saved.source?.provider !== "central-election-committee") {
+    return json({ error: "עדכון רשמי לא הופעל בחדר הזה" }, 403);
+  }
+
+  if (Date.now() - Number(saved.source.importedAt || 0) < 120000) {
+    return json({ ok: true, updated: false, source: saved.source });
+  }
+
+  const imported = await fetchOfficialResults();
+  await env.DB.prepare("UPDATE rooms SET results_json = ? WHERE code = ?").bind(JSON.stringify(imported), code).run();
+  return json({ ok: true, updated: true, ...imported });
+}
+
 async function saveResults(
   request,
   code,
@@ -851,6 +1029,22 @@ async function handleApi(request, env) {
       revealAtMatch[1].toUpperCase(),
       env
     );
+  }
+
+  const importMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/import-official-results$/
+  );
+
+  if (request.method === "POST" && importMatch) {
+    return importOfficialResults(request, importMatch[1].toUpperCase(), env);
+  }
+
+  const syncMatch = path.match(
+    /^\/api\/rooms\/([A-Za-z0-9]+)\/sync-official-results$/
+  );
+
+  if (request.method === "POST" && syncMatch) {
+    return syncOfficialResults(request, syncMatch[1].toUpperCase(), env);
   }
 
   const resultsMatch = path.match(
