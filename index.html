@@ -86,7 +86,7 @@ const PARTY_LISTS=[
 const PARTIES=PARTY_LISTS.map(x=>x.name);
 const LETTERS=Object.fromEntries(PARTY_LISTS.map(x=>[x.name,x.letters]));
 const API_BASE=(window.ELECTIONS_API_BASE||"").replace(/\/$/,"");
-const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,pasteMode:false,managePredictionsMode:false,adminPredictions:[],deadlineMode:false,revealMode:false,adminMode:false,submitted:false};
+const state={screen:"home",code:"",room:null,name:"",seats:blank(),message:"",busy:false,admin:"",resultMode:false,pasteMode:false,managePredictionsMode:false,adminPredictions:[],kfirMode:false,kfirPredictions:[],deadlineMode:false,revealMode:false,adminMode:false,submitted:false};
 const app=document.getElementById("app");
 
 function blank(){return Object.fromEntries(PARTIES.map(p=>[p,0]))}
@@ -261,6 +261,7 @@ const organizerPanel=state.admin?`<section class="adminPanel">
 <div class="adminActions">
 <button type="button" class="secondary" data-action="changeClose">שינוי מועד ההגשה</button>
 ${!r.revealed?'<button type="button" class="secondary" data-action="changeReveal">הקדמת מועד החשיפה</button>':""}
+<button type="button" class="secondary" data-action="viewKfirPredictions">צפייה בתחזיות של כפיר</button>
 <button type="button" class="secondary" data-action="managePredictions">ניהול תחזיות שהוגשו</button>
 <button type="button" class="secondary" data-action="pasteResults">הדבקת תוצאות מטקסט</button>
 <button type="button" class="secondary" data-action="importOfficial">ייבוא תוצאות מוועדת הבחירות</button>
@@ -283,6 +284,13 @@ ${participantPanel}
 ${r.source?`<div class="notice">תוצאות מוועדת הבחירות המרכזית · עדכון אחרון ${new Date(r.source.importedAt).toLocaleString("he-IL")}</div>`:""}
 ${body}
 ${state.message?`<div class="toast">${esc(state.message)}</div>`:""}
+
+${state.kfirMode?`<div class="modal"><section class="panel">
+<button class="close" data-action="closeKfir">×</button>
+<h2>תחזיות של כפיר</h2>
+<p class="empty">לצפייה בלבד. לא ניתן לערוך תחזיות מכאן.</p>
+<div class="cards">${state.kfirPredictions.length?state.kfirPredictions.map((x,i)=>`<details><summary>תחזית ${i+1} · ${new Date(x.submittedAt).toLocaleString("he-IL")}</summary>${PARTIES.filter(p=>(x.seats[p]||0)>0).map(p=>`<p><span>${p}</span><b>${x.seats[p]}</b></p>`).join("")}</details>`).join(""):"<p class=\"empty\">לא נמצאו תחזיות בשם כפיר</p>"}</div>
+</section></div>`:""}
 
 ${state.managePredictionsMode?`<div class="modal"><section class="panel">
 <button class="close" data-action="closeManagePredictions">×</button>
@@ -402,6 +410,8 @@ state.resultMode=false;
 state.pasteMode=false;
 state.managePredictionsMode=false;
 state.adminPredictions=[];
+state.kfirMode=false;
+state.kfirPredictions=[];
 state.deadlineMode=false;
 state.revealMode=false;
 state.adminMode=false;
@@ -422,6 +432,12 @@ refreshTotals();
 }else if(a==="results"){
 state.seats=blank();
 state.resultMode=true;
+render();
+}else if(a==="viewKfirPredictions"){
+loadKfirPredictions();
+}else if(a==="closeKfir"){
+state.kfirMode=false;
+state.kfirPredictions=[];
 render();
 }else if(a==="managePredictions"){
 loadAdminPredictions();
@@ -575,6 +591,28 @@ state.message="ההגשה נסגרה. התחזיות ייחשפו במועד ה�
 render();
 }catch(err){
 state.message=err.message;
+state.busy=false;
+render();
+}
+}
+
+async function loadKfirPredictions(){
+state.busy=true;
+state.message="";
+render();
+
+try{
+const data=await api(`/api/rooms/${state.code}/admin/kfir-predictions`,{
+method:"POST",
+headers:{"content-type":"application/json"},
+body:JSON.stringify({adminToken:state.admin})
+});
+
+state.kfirPredictions=data.predictions||[];
+state.kfirMode=true;
+}catch(err){
+state.message=err.message;
+}finally{
 state.busy=false;
 render();
 }
